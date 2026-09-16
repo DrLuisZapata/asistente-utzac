@@ -1,0 +1,384 @@
+# ASIGNATURA: DESARROLLO DE APLICACIONES NATIVAS
+Programa educativo: Tecnología de la Información e Innovación
+Cuatrimestre: Cuarto
+Institución: Universidad Tecnológica del Estado de Zacatecas
+
+## 1. PRESENTACIÓN
+
+La asignatura de Desarrollo de Aplicaciones Nativas introduce al estudiante en el análisis, diseño, programación, prueba y publicación de aplicaciones móviles construidas específicamente para un sistema operativo. A diferencia de una aplicación web, una aplicación nativa utiliza las herramientas, lenguajes, componentes y servicios propios de una plataforma móvil.
+
+El curso integra fundamentos de programación, diseño de interfaces, navegación entre pantallas, almacenamiento local, consumo de servicios, uso responsable de permisos, pruebas y seguridad. La plataforma concreta, el lenguaje y el entorno de desarrollo deberán definirse de acuerdo con el equipamiento institucional. Se puede trabajar con Android, iOS o una comparación introductoria entre ambas plataformas.
+
+La arquitectura debe considerarse desde las primeras etapas, ya que una estructura adecuada favorece aplicaciones robustas, probables de probar y mantenibles. [web:27] Asimismo, la seguridad móvil se abordará tomando como referencia controles de almacenamiento, criptografía, autenticación, red, plataforma, código, resiliencia y privacidad propuestos por OWASP MASVS. [web:29][web:34]
+
+## 2. PROPÓSITO GENERAL
+
+Desarrollar una aplicación móvil nativa funcional, segura y centrada en las necesidades del usuario, aplicando principios de programación, diseño de interfaces, arquitectura, persistencia de datos, consumo de servicios y pruebas.
+
+## 3. COMPETENCIA DE LA ASIGNATURA
+
+Diseñar, programar y evaluar aplicaciones móviles nativas mediante herramientas de desarrollo de la plataforma seleccionada, integrando interfaces, navegación, datos, servicios y prácticas básicas de seguridad y calidad.
+
+## 4. RESULTADOS DE APRENDIZAJE
+
+Al finalizar la asignatura, el estudiante será capaz de:
+
+- Diferenciar aplicaciones web, híbridas, multiplataforma y nativas.
+- Identificar las características de una plataforma móvil y su ciclo de vida.
+- Configurar un entorno de desarrollo y crear un proyecto nativo.
+- Construir interfaces utilizando componentes propios de la plataforma.
+- Implementar navegación entre pantallas.
+- Aplicar eventos, validación y manejo de estados.
+- Utilizar componentes reutilizables.
+- Almacenar y consultar información localmente.
+- Consumir un servicio web mediante una API.
+- Gestionar permisos de manera justificada.
+- Aplicar controles básicos de seguridad y privacidad.
+- Realizar pruebas funcionales, de interfaz y de dispositivos.
+- Documentar, generar y presentar una versión instalable de la aplicación.
+
+# 5. UNIDADES DE APRENDIZAJE
+
+# UNIDAD I. FUNDAMENTOS DE LAS APLICACIONES NATIVAS
+
+## Objetivo:
+Reconocer las características, componentes y etapas del desarrollo de aplicaciones móviles nativas.
+
+## Contenidos:
+- Aplicaciones nativas, web, híbridas y multiplataforma.
+- Sistemas operativos móviles.
+- SDK, API, emulador, simulador y dispositivo físico.
+- Entorno de desarrollo integrado.
+- Estructura de un proyecto móvil.
+- Ciclo de vida de una aplicación.
+- Actividades, pantallas, vistas o componentes equivalentes.
+- Recursos gráficos, textos, colores y configuraciones.
+- Versionamiento del código.
+- Requerimientos funcionales y no funcionales.
+
+## Actividades:
+- Comparar aplicaciones nativas y web.
+- Instalar y configurar el entorno de desarrollo.
+- Crear un proyecto de prueba.
+- Identificar carpetas, recursos y archivos principales.
+- Elaborar requerimientos para una aplicación universitaria.
+
+## Producto:
+Documento de requerimientos y proyecto inicial ejecutable.
+
+# UNIDAD II. LENGUAJE, ESTRUCTURAS Y COMPONENTES DE LA PLATAFORMA
+
+## Objetivo:
+Aplicar el lenguaje de programación y los componentes básicos de la plataforma para construir soluciones móviles.
+
+## Contenidos:
+- Variables, constantes y tipos de datos.
+- Operadores y expresiones.
+- Condicionales y ciclos.
+- Funciones, métodos y modularidad.
+- Clases y objetos.
+- Colecciones y modelos de datos.
+- Manejo de excepciones.
+- Componentes visuales.
+- Recursos del proyecto.
+- Convenciones de nombres y organización del código.
+
+## Ejemplo conceptual en Kotlin:
+
+fun calcularTotal(precio: Double, cantidad: Int): Double {
+    return precio * cantidad
+}
+
+fun clasificarResultado(valor: Double): String {
+    return if (valor >= 70) "Aprobado" else "Pendiente"
+}
+
+El lenguaje concreto puede cambiar; lo importante es comprender tipos, funciones, objetos, eventos y manejo de errores.
+
+## Actividades:
+- Resolver cálculos técnicos.
+- Crear funciones reutilizables.
+- Modelar una entidad como Usuario, Producto o Proyecto.
+- Capturar y validar datos.
+
+## Producto:
+Aplicación de ejercicios con cálculos, validación y componentes básicos.
+
+# UNIDAD III. DISEÑO DE INTERFACES Y NAVEGACIÓN
+
+## Objetivo:
+Construir interfaces nativas coherentes, accesibles y adaptadas a distintos tamaños de pantalla.
+
+## Contenidos:
+- Principios de diseño móvil.
+- Jerarquía visual y consistencia.
+- Componentes de entrada, salida y navegación.
+- Botones, campos, listas, tarjetas y barras de navegación.
+- Diseño adaptable.
+- Estados de carga, vacío, éxito y error.
+- Navegación entre pantallas.
+- Paso de parámetros y resultados.
+- Ciclo de vida de pantallas.
+- Accesibilidad y uso con tecnologías de apoyo.
+- Recursos gráficos y densidades de pantalla.
+
+## Buenas prácticas:
+- Utilizar etiquetas claras y mensajes breves.
+- Mantener objetivos táctiles suficientemente cómodos.
+- Mostrar el estado de la aplicación.
+- Evitar solicitar datos que no sean necesarios.
+- Mantener una navegación predecible.
+- Proporcionar alternativas textuales a contenidos visuales.
+
+## Actividades:
+- Diseñar el flujo de una aplicación de servicios estudiantiles.
+- Crear una pantalla de inicio de sesión.
+- Construir una lista de elementos.
+- Navegar desde una lista hacia el detalle.
+- Diseñar estados de carga y error.
+
+## Producto:
+Prototipo funcional con al menos tres pantallas y navegación implementada.
+
+# UNIDAD IV. DATOS LOCALES Y CONSUMO DE SERVICIOS
+
+## Objetivo:
+Almacenar información localmente y consumir datos provenientes de servicios web.
+
+## Contenidos:
+- Modelos y estructuras de datos.
+- Preferencias simples.
+- Archivos locales.
+- Bases de datos móviles.
+- Operaciones de alta, consulta, actualización y eliminación.
+- Serialización y deserialización.
+- Concepto de API y endpoint.
+- Solicitudes HTTP.
+- JSON.
+- Estados de respuesta.
+- Operaciones asíncronas.
+- Indicadores de carga y manejo de errores de red.
+- Separación entre interfaz, lógica y datos.
+
+## Flujo sugerido para consultar una API:
+1. Mostrar indicador de carga.
+2. Realizar la solicitud.
+3. Verificar la respuesta.
+4. Convertir los datos al modelo de la aplicación.
+5. Mostrar el resultado.
+6. Informar errores y ofrecer reintento.
+
+## Ejemplo de estructura JSON:
+
+{
+  "id": 1,
+  "nombre": "Taller de innovación",
+  "cupo": 25,
+  "disponible": true
+}
+
+## Buenas prácticas:
+- No almacenar contraseñas en texto plano.
+- No incluir claves secretas directamente en el código publicado.
+- Validar datos recibidos de servicios externos.
+- Evitar bloquear la interfaz durante operaciones de red.
+- Informar al usuario cuando no exista conexión.
+
+## Producto:
+Aplicación que almacene registros localmente y consulte información de un servicio web o conjunto de datos simulado.
+
+# UNIDAD V. ARQUITECTURA, SEGURIDAD Y CALIDAD
+
+## Objetivo:
+Organizar la aplicación y aplicar medidas básicas para mejorar su seguridad, mantenimiento y confiabilidad.
+
+## Contenidos:
+- Separación de responsabilidades.
+- Modelo, vista y lógica de presentación.
+- Capas de aplicación.
+- Componentes reutilizables.
+- Inyección de dependencias como concepto introductorio.
+- Gestión del estado.
+- Validación de entradas.
+- Autenticación y autorización como conceptos.
+- Almacenamiento seguro.
+- Comunicación protegida.
+- Permisos mínimos necesarios.
+- Privacidad y consentimiento.
+- Registro de errores sin exponer datos sensibles.
+- Revisión de dependencias.
+- Control de versiones.
+
+La arquitectura debe facilitar que la interfaz, la lógica y los datos puedan modificarse y probarse sin afectar todo el sistema. La seguridad no debe agregarse únicamente al final; debe considerarse desde el análisis de requerimientos.
+
+## Actividades:
+- Separar una aplicación monolítica en capas.
+- Identificar datos sensibles.
+- Revisar permisos solicitados.
+- Diseñar una política breve de privacidad.
+- Crear una lista de riesgos y medidas preventivas.
+
+## Producto:
+Diagrama de arquitectura, matriz de riesgos y versión mejorada de la aplicación.
+
+# UNIDAD VI. PRUEBAS, PUBLICACIÓN Y PROYECTO INTEGRADOR
+
+# Objetivo:
+Probar, documentar y preparar una aplicación nativa para su demostración o distribución controlada.
+
+# Contenidos:
+- Pruebas unitarias introductorias.
+- Pruebas de interfaz.
+- Pruebas de navegación.
+- Pruebas en emulador y dispositivo físico.
+- Pruebas con diferentes tamaños de pantalla.
+- Pruebas de conectividad y errores.
+- Accesibilidad y usabilidad.
+- Depuración y registros técnicos.
+- Configuraciones de compilación.
+- Generación de paquete instalable.
+- Documentación técnica y manual de usuario.
+- Presentación y mantenimiento.
+
+## Producto:
+Aplicación nativa funcional, documentada y acompañada por evidencias de prueba.
+
+# 6. PROYECTO INTEGRADOR
+
+## Título: Aplicación móvil nativa para un servicio universitario o solución de innovación.
+
+## Descripción:
+El estudiante desarrollará una aplicación para resolver una necesidad concreta de estudiantes, docentes, emprendedores o usuarios de un servicio. La aplicación deberá incluir una interfaz clara, navegación, almacenamiento o consulta de datos, validación y pruebas.
+
+## Ejemplos:
+- Agenda de talleres y eventos universitarios.
+- Registro de proyectos de innovación.
+- Control de actividades académicas.
+- Catálogo de productos sustentables.
+- Reporte de incidencias del campus.
+- Seguimiento de préstamos de equipo.
+- Aplicación de orientación para estudiantes.
+
+## Requisitos mínimos:
+- Documento de problema y usuarios.
+- Requerimientos funcionales.
+- Diagrama de navegación.
+- Al menos tres pantallas.
+- Componentes nativos de interfaz.
+- Validación de entradas.
+- Persistencia local o consumo de API.
+- Manejo de estados de carga, vacío, éxito y error.
+- Gestión justificada de permisos.
+- Pruebas en emulador o dispositivo.
+- Consideraciones de seguridad y privacidad.
+- Manual técnico y manual de usuario.
+- Presentación de la aplicación.
+
+# 7. METODOLOGÍA DE ENSEÑANZA-APRENDIZAJE
+
+La asignatura se desarrollará mediante aprendizaje basado en proyectos. Cada unidad combinará explicación, demostración, práctica guiada, ejercicios individuales, revisión de código y aplicación al proyecto integrador.
+
+## Proceso sugerido:
+1. Identificar la necesidad y los usuarios.
+2. Definir requerimientos y alcance.
+3. Diseñar flujo y pantallas.
+4. Crear el proyecto nativo.
+5. Implementar componentes y navegación.
+6. Integrar datos locales o servicios.
+7. Validar entradas y controlar errores.
+8. Aplicar medidas básicas de seguridad.
+9. Probar en diferentes condiciones.
+10. Documentar y presentar.
+
+# 8. PRÁCTICAS SUGERIDAS
+
+- Crear una aplicación de conversión de unidades.
+- Diseñar una pantalla de perfil de usuario.
+- Construir una lista con detalle.
+- Implementar un formulario de registro.
+- Guardar preferencias de configuración.
+- Crear un catálogo con búsqueda y filtros.
+- Consumir un JSON local o una API de prueba.
+- Manejar estados de carga y error.
+- Implementar un tema claro y oscuro.
+- Probar la navegación con diferentes tamaños de pantalla.
+- Crear pruebas para una función de cálculo.
+- Analizar permisos y datos sensibles.
+
+# 9. EVALUACIÓN SUGERIDA
+
+- Requerimientos y diseño de solución: 15 por ciento.
+- Interfaz y navegación: 20 por ciento.
+- Programación y modularidad: 20 por ciento.
+- Datos locales o servicios: 15 por ciento.
+- Seguridad, accesibilidad y manejo de errores: 15 por ciento.
+- Pruebas, documentación y presentación: 15 por ciento.
+
+## Criterios:
+- El problema y los usuarios están claramente definidos.
+- La aplicación cumple los requerimientos principales.
+- La navegación es coherente.
+- La interfaz responde adecuadamente a las acciones.
+- El código está organizado y utiliza componentes reutilizables.
+- Los datos se validan y almacenan correctamente.
+- Los errores se comunican de manera clara.
+- Los permisos son mínimos y justificados.
+- Se protegen datos sensibles.
+- Existen evidencias de pruebas.
+- La documentación permite instalar y utilizar la aplicación.
+
+# 10. RECURSOS DIDÁCTICOS
+
+- Computadora con el entorno de desarrollo de la plataforma seleccionada.
+- SDK y herramientas de compilación.
+- Emulador o simulador.
+- Dispositivo físico para pruebas, cuando sea posible.
+- Editor de código y sistema de control de versiones.
+- Herramientas de prototipado.
+- Servicio de datos local o API de prueba.
+- Plataforma educativa institucional.
+- Documentación oficial de Android, iOS o la plataforma seleccionada. [web:26][web:27]
+- OWASP MASVS y materiales de seguridad móvil. [web:29][web:30]
+
+# 11. GLOSARIO BÁSICO
+
+Aplicación nativa: software desarrollado específicamente para una plataforma y sus herramientas.
+
+SDK: conjunto de herramientas, bibliotecas y recursos para desarrollar aplicaciones.
+
+API: interfaz que permite la comunicación entre componentes o aplicaciones.
+
+Emulador: programa que simula un dispositivo o sistema.
+
+Simulador: entorno que reproduce parte del comportamiento de una plataforma.
+
+Actividad o pantalla: componente visual y funcional que presenta una parte de la aplicación, según la plataforma.
+
+Interfaz: conjunto de elementos mediante los cuales el usuario interactúa con la aplicación.
+
+Estado: condición actual de una pantalla o proceso, como cargando, vacío, éxito o error.
+
+Persistencia: conservación de datos para utilizarlos posteriormente.
+
+JSON: formato de texto utilizado para intercambiar datos estructurados.
+
+Endpoint: dirección específica de un servicio web.
+
+Permiso: autorización solicitada por una aplicación para acceder a una capacidad o recurso.
+
+Autenticación: proceso de verificar la identidad de una persona o sistema.
+
+Autorización: proceso de determinar qué acciones puede realizar una identidad.
+
+# 12. RECOMENDACIONES PARA EL ESTUDIANTE
+
+- Definir primero el problema y no comenzar por las pantallas.
+- Mantener un alcance pequeño y realizable.
+- Probar cada componente antes de integrarlo.
+- Utilizar control de versiones desde el inicio.
+- No copiar claves, contraseñas ni datos sensibles en el repositorio.
+- Solicitar únicamente permisos necesarios.
+- Revisar los mensajes de error del entorno.
+- Probar con datos válidos, inválidos, vacíos y extremos.
+- Verificar la aplicación en más de un tamaño de pantalla.
+- Documentar decisiones técnicas y limitaciones.

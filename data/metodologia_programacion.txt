@@ -1,0 +1,324 @@
+# METODOLOGÍA DE LA PROGRAMACIÓN
+Programa educativo: Mecatrónica, Sistemas de Manufactura Flexible
+Institución: Universidad Tecnológica del Estado de Zacatecas
+Cuatrimestre: Primero
+
+## PRESENTACIÓN
+
+La asignatura introduce al estudiante en el pensamiento computacional, la resolución estructurada de problemas y el desarrollo de programas básicos. Proporciona fundamentos para analizar situaciones, diseñar algoritmos y construir soluciones relacionadas con la mecatrónica y los sistemas de manufactura flexible.
+
+## PROPÓSITO GENERAL
+
+Desarrollar la capacidad de analizar problemas, diseñar algoritmos mediante pseudocódigo y diagramas de flujo, e implementar programas estructurados aplicando buenas prácticas de prueba, depuración y documentación.
+
+## COMPETENCIA
+
+Diseñar soluciones computacionales para problemas básicos de mecatrónica y manufactura flexible mediante el análisis lógico, la representación de algoritmos y la implementación de programas estructurados.
+
+## RESULTADOS DE APRENDIZAJE
+
+- Explicar algoritmo, programa, lenguaje, compilador e intérprete.
+- Identificar entradas, procesos y salidas.
+- Analizar problemas mediante descomposición y abstracción.
+- Representar algoritmos con pseudocódigo y diagramas de flujo.
+- Utilizar variables, constantes, tipos de datos y operadores.
+- Implementar estructuras secuenciales, selectivas y repetitivas.
+- Utilizar funciones o procedimientos sencillos.
+- Manejar arreglos y cadenas de caracteres.
+- Realizar pruebas, detectar errores y depurar programas.
+- Relacionar la programación con procesos automatizados.
+
+## UNIDAD I. INTRODUCCIÓN A LA PROGRAMACIÓN Y AL PENSAMIENTO COMPUTACIONAL
+
+Objetivo: Reconocer conceptos básicos y aplicar estrategias de pensamiento computacional para plantear soluciones.
+
+Contenidos: problema y solución; descomposición; reconocimiento de patrones; abstracción; algoritmo; programa; lenguaje de programación; software y hardware; compiladores e intérpretes; aplicaciones en mecatrónica y manufactura flexible.
+
+Actividades: elaborar algoritmos cotidianos, analizar ejemplos de automatización e investigar aplicaciones en robots, sensores y líneas de producción.
+
+## UNIDAD II. ALGORITMOS, PSEUDOCÓDIGO Y DIAGRAMAS DE FLUJO
+
+Objetivo: Diseñar algoritmos identificando entradas, procesos y salidas.
+
+Contenidos: estructura de un algoritmo; pseudocódigo; símbolos de diagramas de flujo; variables; constantes; tipos entero, real, carácter, cadena y lógico; operadores; asignación; validación mediante casos de prueba.
+
+Actividades: calcular medidas, costos, promedios y conversiones; controlar variables de proceso; probar datos normales, límites e incorrectos.
+
+## UNIDAD III. ESTRUCTURAS DE CONTROL
+
+Objetivo: Implementar programas utilizando estructuras secuenciales, selectivas y repetitivas.
+
+Contenidos: secuencia; decisiones simples, dobles y múltiples; condiciones compuestas; ciclos para, mientras y repetir-hasta; contadores; acumuladores; validación de datos.
+
+Actividades: clasificar piezas, simular actuadores, calcular series y diseñar menús.
+
+## UNIDAD IV. FUNCIONES, ARREGLOS Y MANEJO BÁSICO DE INFORMACIÓN
+
+Objetivo: Organizar programas mediante funciones y procesar datos básicos.
+
+Contenidos: modularidad; funciones; procedimientos; parámetros; valores de retorno; ámbito de variables; arreglos unidimensionales; recorrido; búsqueda; actualización; cadenas; registro de resultados.
+
+## UNIDAD V. PRUEBAS, DEPURACIÓN Y PROYECTO INTEGRADOR
+
+Objetivo: Aplicar pruebas, depuración y documentación a una solución programable.
+
+Contenidos: errores de sintaxis, ejecución y lógica; depuración; casos de prueba; criterios de aceptación; documentación; legibilidad; colaboración; presentación.
+
+# METODOLOGÍA DE ENSEÑANZA-APRENDIZAJE
+
+La asignatura combinará explicación docente, demostraciones, ejercicios guiados, prácticas individuales y trabajo colaborativo. Se recomienda utilizar problemas de clasificación de piezas, control de motores, lectura de sensores, conteo de productos y operación de estaciones de trabajo.
+
+Secuencia de solución: comprender el problema; identificar entradas, procesos y salidas; diseñar el algoritmo; representarlo; implementarlo; probarlo; corregirlo y documentarlo.
+
+## PRÁCTICAS SUGERIDAS
+
+- Calcular el área y volumen de una pieza.
+- Convertir unidades industriales.
+- Calcular costo y tiempo de producción.
+- Clasificar piezas por dimensiones.
+- Contar piezas aceptadas y rechazadas.
+- Simular un semáforo industrial.
+- Controlar lógicamente una banda transportadora.
+- Registrar lecturas de sensores.
+- Crear un menú de operaciones de una celda.
+- Analizar productividad con arreglos.
+
+# DESARROLLO DE TEMAS DE LA UNIDAD IV
+
+## 1. MODULARIDAD Y REUTILIZACIÓN DE CÓDIGO
+
+La modularidad consiste en dividir un programa grande en partes independientes llamadas módulos. Cada módulo realiza una tarea concreta y se comunica con los demás mediante datos definidos. Esto facilita comprender, desarrollar, probar, corregir y mantener el programa.
+
+En una línea de manufactura flexible pueden existir módulos para leer sensores, validar medidas, clasificar piezas, registrar resultados y generar reportes. La reutilización consiste en utilizar nuevamente una función o módulo probado en lugar de escribir la misma solución varias veces.
+
+Características de un buen módulo:
+- Tiene una responsabilidad principal.
+- Posee un nombre claro.
+- Recibe solo los datos necesarios.
+- Produce un resultado o acción definida.
+- Evita depender innecesariamente de variables globales.
+- Puede probarse de forma independiente.
+
+Ejemplo:
+
+PROGRAMA SistemaDeInspeccion
+    datos <- leerPiezas()
+    datosValidos <- validarMedidas(datos)
+    resultados <- clasificarPiezas(datosValidos)
+    registrarResultados(resultados)
+    mostrarReporte(resultados)
+FIN PROGRAMA
+
+Actividad: identificar cinco módulos para una línea que recibe piezas, mide su diámetro, las clasifica y contabiliza piezas aceptadas y rechazadas.
+
+## 2. FUNCIONES Y PROCEDIMIENTOS
+
+Una función es un bloque de instrucciones que realiza una tarea específica y normalmente devuelve un valor. Un procedimiento ejecuta una acción y no necesariamente devuelve un valor.
+
+FUNCION calcularPromedio(a, b, c)
+    promedio <- (a + b + c) / 3
+    RETORNAR promedio
+FIN FUNCION
+
+PROCEDIMIENTO mostrarMensaje(mensaje)
+    ESCRIBIR mensaje
+FIN PROCEDIMIENTO
+
+Ejemplo en Python:
+
+def calcular_promedio(a, b, c):
+    return (a + b + c) / 3
+
+def mostrar_mensaje(mensaje):
+    print(mensaje)
+
+Los elementos de una función son nombre, parámetros, cuerpo y valor de retorno. Una función debe ser suficientemente pequeña para comprenderla y probarla con facilidad.
+
+Actividad: crear una función para convertir grados Celsius a Fahrenheit y un procedimiento que muestre el resultado.
+
+## 3. PARÁMETROS Y VALORES DE RETORNO
+
+Los parámetros son variables definidas en una función. Los valores concretos enviados al realizar la llamada se llaman argumentos.
+
+FUNCION calcularAreaRectangulo(base, altura)
+    area <- base * altura
+    RETORNAR area
+FIN FUNCION
+
+resultado <- calcularAreaRectangulo(8, 5)
+
+base y altura son parámetros; 8 y 5 son argumentos; resultado recibe el valor retornado. Una función puede retornar números, texto, valores lógicos, arreglos u otras estructuras.
+
+Ejemplo:
+
+def clasificar_pieza(diametro, minimo=19.5, maximo=20.5):
+    if minimo <= diametro <= maximo:
+        return "ACEPTADA"
+    return "RECHAZADA"
+
+Buenas prácticas: usar pocos parámetros; elegir nombres descriptivos; validar valores; documentar unidades, rangos y condiciones; evitar dependencias ocultas.
+
+Actividad: diseñar una función que reciba piezas aceptadas y rechazadas y retorne el porcentaje de aceptación.
+
+## 4. ÁMBITO DE LAS VARIABLES
+
+El ámbito o alcance indica la parte del programa donde una variable puede ser utilizada. Una variable local se declara dentro de una función o bloque y generalmente solo puede utilizarse allí. Una variable global se declara fuera de las funciones y puede ser accesible desde varias partes del programa.
+
+Ejemplo:
+
+contador_global = 0
+
+def procesar_pieza():
+    codigo = "P001"
+    estado = "ACEPTADA"
+    return codigo, estado
+
+Los parámetros son variables locales de la función. Se recomienda preferir variables locales y comunicar información mediante parámetros y retornos. El uso excesivo de variables globales dificulta saber qué parte del programa modificó un dato.
+
+Error frecuente: crear una variable dentro de una función y utilizarla fuera como si fuera global. La solución es retornarla o enviarla como parámetro.
+
+Actividad: identificar variables locales, parámetros y variables globales innecesarias en un programa.
+
+## 5. ARREGLOS UNIDIMENSIONALES
+
+Un arreglo unidimensional es una colección ordenada de datos accesibles mediante índices. En muchos lenguajes el primer índice es 0.
+
+mediciones = [20.1, 19.8, 20.4, 21.0]
+
+mediciones[0] vale 20.1 y mediciones[3] vale 21.0.
+
+Operaciones básicas: crear, consultar, modificar, agregar, eliminar, obtener la cantidad y recorrer elementos. Los arreglos pueden almacenar mediciones de sensores, códigos, tiempos, temperaturas o estados de piezas.
+
+Ejemplo en Python:
+
+mediciones = [20.1, 19.8, 20.4, 21.0]
+print(mediciones[0])
+mediciones.append(20.0)
+mediciones[1] = 19.9
+
+Es necesario respetar los límites del arreglo para no consultar posiciones inexistentes.
+
+Actividad: crear un arreglo con diez diámetros y determinar cuántos están dentro del rango permitido.
+
+## 6. RECORRIDO, BÚSQUEDA Y ACTUALIZACIÓN DE DATOS
+
+Recorrer un arreglo significa visitar sus elementos uno por uno. El recorrido permite calcular resultados, contar elementos, mostrar información o aplicar condiciones.
+
+mediciones = [20.1, 19.8, 20.4, 21.0]
+for medicion in mediciones:
+    print(medicion)
+
+La búsqueda localiza un dato o verifica una condición:
+
+codigos = ["P001", "P002", "P003"]
+if "P002" in codigos:
+    print("Código encontrado")
+
+La actualización modifica elementos según una regla:
+
+for i in range(len(mediciones)):
+    if mediciones[i] < 20.0:
+        mediciones[i] = 20.0
+
+En procesos industriales se recomienda conservar los datos originales cuando se requiera trazabilidad.
+
+Algoritmo de clasificación:
+
+aceptadas <- 0
+rechazadas <- 0
+PARA cada medicion EN mediciones HACER
+    SI medicion >= minimo Y medicion <= maximo ENTONCES
+        aceptadas <- aceptadas + 1
+    SI NO
+        rechazadas <- rechazadas + 1
+    FIN SI
+FIN PARA
+
+Actividad: buscar un código de pieza, informar su posición y actualizar su estado de PENDIENTE a PROCESADA.
+
+## 7. CADENAS DE CARACTERES
+
+Una cadena es una secuencia de símbolos que representa texto. Puede contener letras, números, espacios y signos. Ejemplos: "Pieza A", "M001" y "ACEPTADA".
+
+Operaciones comunes: concatenar; obtener longitud; comparar; convertir mayúsculas o minúsculas; buscar subcadenas; extraer texto; separar componentes y eliminar espacios.
+
+Ejemplo:
+
+codigo = "  p001  "
+codigo = codigo.strip().upper()
+print(codigo)
+
+Validación:
+
+codigo = "P001"
+if codigo.startswith("P") and len(codigo) == 4:
+    print("Código válido")
+else:
+    print("Código no válido")
+
+Una cadena numérica como "0015" no es igual al número 15: conserva los ceros como texto. Las cadenas son útiles para códigos, mensajes, estados, nombres de archivos y reportes.
+
+Actividad: solicitar un código, eliminar espacios, convertirlo a mayúsculas y validar que empiece con P y tenga cuatro caracteres.
+
+## 8. INTRODUCCIÓN AL REGISTRO DE RESULTADOS
+
+Registrar resultados consiste en conservar organizadamente la información generada por un programa. Un registro puede incluir fecha, hora, código, medición, estado, operador y tiempo de proceso.
+
+El registro permite consultar eventos, elaborar reportes, comparar lotes, detectar fallas y dar seguimiento a piezas.
+
+Ejemplo en memoria:
+
+registro = []
+pieza = {"codigo": "P001", "medicion": 20.1, "estado": "ACEPTADA"}
+registro.append(pieza)
+
+for elemento in registro:
+    print(elemento["codigo"], elemento["estado"])
+
+Ejemplo en archivo de texto:
+
+with open("resultados.txt", "a", encoding="utf-8") as archivo:
+    archivo.write("P001,20.1,ACEPTADA\n")
+
+Formato sugerido:
+
+codigo,medicion,estado
+P001,20.1,ACEPTADA
+P002,19.6,RECHAZADA
+
+Debe definirse el nombre de los campos, orden, unidades, formato de fecha y criterios para estados y errores.
+
+# PROYECTO INTEGRADOR
+
+## Título: Registro y clasificación de piezas.
+
+## Desarrollar un programa modular que reciba mediciones, determine si cumplen un rango, almacene resultados y genere un reporte.
+
+## Requisitos: utilizar al menos tres funciones; recibir parámetros y retornar resultados; usar variables locales; almacenar mediciones en un arreglo; recorrerlo; buscar un código; actualizar un estado; utilizar cadenas; registrar resultados; mostrar totales y porcentaje de aceptación.
+
+## Funciones sugeridas: capturar_mediciones(), clasificar_pieza(), buscar_pieza(), actualizar_estado(), calcular_resumen() y guardar_resultados().
+
+## EVALUACIÓN SUGERIDA
+
+- Comprensión conceptual: 20 por ciento.
+- Diseño modular: 20 por ciento.
+- Funciones, parámetros y retornos: 20 por ciento.
+- Arreglos, cadenas y recorridos: 20 por ciento.
+- Registro, pruebas y documentación: 20 por ciento.
+
+## GLOSARIO
+
+Módulo: componente independiente que realiza una tarea.
+Función: bloque que recibe datos y puede retornar un resultado.
+Procedimiento: bloque destinado principalmente a ejecutar una acción.
+Parámetro: variable que recibe información dentro de una función.
+Argumento: valor enviado al llamar una función.
+Retorno: resultado entregado por una función.
+Ámbito: zona donde una variable es válida.
+Arreglo: colección ordenada accesible mediante índices.
+Cadena: secuencia de caracteres que representa texto.
+Registro: conjunto organizado de datos relacionados con un evento.
+
+## RECURSOS Y RECOMENDACIONES
+
+Se recomienda utilizar computadora, editor de código, herramientas para diagramas de flujo, simuladores y un repositorio digital. El estudiante debe diseñar primero en pseudocódigo, probar con datos normales, límites e incorrectos y documentar sus decisiones.

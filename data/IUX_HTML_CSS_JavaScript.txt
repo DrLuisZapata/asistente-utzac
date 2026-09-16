@@ -1,0 +1,427 @@
+#ASIGNATURA: INTERFACES DE USUARIO Y EXPERIENCIA (IUX)
+Tecnologías: HTML, CSS y JavaScript
+Programa educativo: Tecnología de la Información e Innovación
+Cuatrimestre: Tercero
+Institución: Universidad Tecnológica del Estado de Zacatecas
+
+## 1. PRESENTACIÓN
+
+La asignatura de Interfaces de Usuario y Experiencia (IUX) introduce al estudiante en el diseño, estructuración, estilización e implementación de interfaces web centradas en las necesidades de las personas usuarias. HTML se emplea para estructurar el contenido, CSS para definir su presentación visual y JavaScript para incorporar comportamiento e interacción.
+
+El curso vincula principios de diseño, accesibilidad, usabilidad y desarrollo web. Se recomienda que el estudiante analice primero el problema y las necesidades del usuario antes de construir la solución tecnológica.
+
+La accesibilidad se abordará con base en los principios de contenido perceptible, operable, comprensible y robusto establecidos por las pautas WCAG del W3C. [web:11][web:14]
+
+## 2. PROPÓSITO GENERAL
+
+Diseñar y desarrollar interfaces web responsivas, accesibles y funcionales mediante HTML semántico, CSS y JavaScript, aplicando principios de experiencia de usuario, prototipado, evaluación y mejora continua.
+
+## 3. COMPETENCIA DE LA ASIGNATURA
+
+Construir interfaces web centradas en el usuario que integren estructura, diseño visual e interacción mediante HTML, CSS y JavaScript, considerando usabilidad, accesibilidad, adaptación a distintos dispositivos y calidad del código.
+
+## 4. RESULTADOS DE APRENDIZAJE
+
+Al finalizar la asignatura, el estudiante será capaz de:
+
+- Explicar los conceptos de interfaz de usuario, experiencia de usuario, usabilidad, accesibilidad y diseño centrado en las personas.
+- Identificar necesidades, perfiles de usuario y objetivos de una interfaz.
+- Elaborar arquitectura de información, flujos de navegación y wireframes.
+- Construir documentos web con HTML semántico.
+- Aplicar CSS para crear diseños visuales, responsivos y consistentes.
+- Utilizar JavaScript para manipular el DOM y responder a eventos.
+- Validar formularios y presentar mensajes claros.
+- Diseñar componentes reutilizables y mantener una organización adecuada de archivos.
+- Probar interfaces en diferentes tamaños de pantalla y navegadores.
+- Evaluar interfaces mediante criterios de usabilidad y accesibilidad.
+- Documentar y presentar un proyecto web funcional.
+
+# 5. UNIDADES DE APRENDIZAJE
+
+## UNIDAD I. FUNDAMENTOS DE IUX Y DISEÑO CENTRADO EN EL USUARIO
+
+Objetivo:
+Comprender los fundamentos de IUX y analizar las necesidades de las personas usuarias antes de diseñar una interfaz.
+
+Contenidos:
+- Interfaz de usuario y experiencia de usuario.
+- Usabilidad, accesibilidad, utilidad y deseabilidad.
+- Diseño centrado en el usuario.
+- Personas usuarias y escenarios de uso.
+- Requerimientos funcionales y no funcionales.
+- Arquitectura de información.
+- Jerarquía visual.
+- Flujos de usuario.
+- Patrones de navegación.
+- Diseño inclusivo y responsive.
+
+Actividades:
+- Analizar interfaces de sitios y aplicaciones.
+- Crear una persona usuaria.
+- Elaborar un mapa de necesidades.
+- Diseñar el flujo para una tarea concreta.
+- Comparar una interfaz clara con una interfaz confusa.
+
+Producto:
+Documento de análisis de usuario, objetivos, requerimientos y flujo de navegación.
+
+## UNIDAD II. PROTOTIPADO Y DISEÑO VISUAL
+
+Objetivo:
+Representar soluciones de interfaz mediante bocetos, wireframes y prototipos de baja y alta fidelidad.
+
+Contenidos:
+- Bocetos y wireframes.
+- Prototipos de baja y alta fidelidad.
+- Sistema de diseño.
+- Color, contraste y tipografía.
+- Espaciado, alineación y composición.
+- Componentes visuales.
+- Estados de botones, formularios y mensajes.
+- Diseño para dispositivos móviles.
+- Pruebas tempranas con usuarios.
+
+Actividades:
+- Crear wireframes de una página de inicio.
+- Diseñar una tarjeta, botón, formulario y menú.
+- Definir colores, tipografías y espaciados.
+- Prototipar una aplicación de servicio universitario.
+
+Producto:
+Prototipo navegable con guía visual básica.
+
+## UNIDAD III. HTML SEMÁNTICO Y ESTRUCTURA WEB
+
+Objetivo:
+Construir páginas web organizadas y significativas utilizando HTML semántico.
+
+Contenidos:
+- Estructura de un documento HTML.
+- Elementos head y body.
+- Encabezados, párrafos y listas.
+- Enlaces e imágenes.
+- Elementos semánticos: header, nav, main, section, article, aside y footer.
+- Tablas y datos tabulares.
+- Formularios, etiquetas y controles.
+- Atributos id, class, name, placeholder y required.
+- Texto alternativo para imágenes.
+- Metadatos básicos y título de página.
+- Validación del documento.
+
+Ejemplo:
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal de innovación</title>
+</head>
+<body>
+  <header>
+    <h1>Portal de innovación</h1>
+    <nav aria-label="Navegación principal">
+      <a href="#proyectos">Proyectos</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+  </header>
+  <main>
+    <section id="proyectos">
+      <h2>Proyectos destacados</h2>
+      <p>Soluciones desarrolladas por estudiantes.</p>
+    </section>
+  </main>
+  <footer>Universidad Tecnológica del Estado de Zacatecas</footer>
+</body>
+</html>
+
+Buenas prácticas:
+- Usar un solo h1 principal y una jerarquía lógica de encabezados.
+- Preferir elementos semánticos en lugar de contenedores genéricos.
+- Asociar cada control de formulario con su label.
+- Usar texto alternativo significativo en imágenes.
+- Especificar el idioma del documento.
+- Mantener separados estructura, presentación y comportamiento.
+
+Producto:
+Página HTML semántica para un servicio, evento o proyecto de innovación.
+
+## UNIDAD IV. CSS, DISEÑO RESPONSIVO Y SISTEMAS VISUALES
+
+Objetivo:
+Aplicar CSS para producir interfaces visualmente consistentes, adaptables y fáciles de utilizar.
+
+Contenidos:
+- Sintaxis de CSS.
+- Selectores, propiedades y valores.
+- Cascada, herencia y especificidad.
+- Modelo de caja.
+- Márgenes, relleno y bordes.
+- Colores, tipografías y unidades.
+- Flexbox.
+- CSS Grid.
+- Posicionamiento.
+- Pseudoclases y estados de interacción.
+- Media queries.
+- Diseño mobile-first.
+- Variables CSS.
+- Transiciones y animaciones moderadas.
+
+Ejemplo:
+
+:root {
+  --color-principal: #145da0;
+  --color-fondo: #f4f7fb;
+  --espacio: 1rem;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--color-fondo);
+  color: #1f2937;
+}
+
+.contenedor {
+  width: min(92%, 1100px);
+  margin-inline: auto;
+}
+
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--espacio);
+}
+
+@media (max-width: 700px) {
+  .tarjetas {
+    grid-template-columns: 1fr;
+  }
+}
+
+Buenas prácticas:
+- Diseñar primero para pantallas pequeñas y ampliar progresivamente.
+- Mantener contraste suficiente entre texto y fondo.
+- No comunicar información únicamente mediante color.
+- Definir estados hover, focus y disabled cuando correspondan.
+- Usar unidades flexibles y evitar anchos rígidos innecesarios.
+- Centralizar colores y medidas con variables CSS.
+
+Producto:
+Interfaz responsiva con al menos tres componentes visuales y adaptación para móvil.
+
+UNIDAD V. JAVASCRIPT, DOM E INTERACCIÓN
+
+Objetivo:
+Incorporar comportamiento dinámico mediante JavaScript, eventos y manipulación del DOM.
+
+Contenidos:
+- Inclusión de JavaScript en HTML.
+- Variables, constantes y tipos de datos.
+- Operadores y expresiones.
+- Condicionales y ciclos.
+- Funciones y modularidad.
+- Arreglos y objetos.
+- DOM y selección de elementos.
+- Eventos de clic, teclado y formulario.
+- Manipulación de texto, clases y atributos.
+- Validación de formularios.
+- Mensajes de estado.
+- Almacenamiento local introductorio.
+- Manejo básico de errores.
+
+Ejemplo:
+
+const boton = document.querySelector('#btnMostrar');
+const mensaje = document.querySelector('#mensaje');
+
+boton.addEventListener('click', () => {
+  mensaje.textContent = 'La acción se realizó correctamente.';
+  mensaje.classList.add('visible');
+});
+
+Ejemplo de validación:
+
+const formulario = document.querySelector('#formulario');
+const nombre = document.querySelector('#nombre');
+const aviso = document.querySelector('#aviso');
+
+formulario.addEventListener('submit', (evento) => {
+  evento.preventDefault();
+  if (nombre.value.trim() === '') {
+    aviso.textContent = 'Escribe tu nombre para continuar.';
+    nombre.focus();
+    return;
+  }
+  aviso.textContent = 'Formulario enviado correctamente.';
+});
+
+Buenas prácticas:
+- Usar const cuando una referencia no cambia y let cuando sí puede cambiar.
+- Separar funciones por responsabilidad.
+- Utilizar nombres descriptivos.
+- Validar datos de entrada.
+- Proporcionar retroalimentación visible y comprensible.
+- Evitar modificar el DOM innecesariamente.
+- Mantener JavaScript en archivos externos cuando el proyecto crezca.
+
+Producto:
+Página interactiva con menú, formulario validado, mensajes de estado y al menos una funcionalidad dinámica.
+
+## UNIDAD VI. ACCESIBILIDAD, PRUEBAS Y EVALUACIÓN DE INTERFACES
+
+Objetivo:
+Evaluar y mejorar una interfaz considerando accesibilidad, usabilidad, compatibilidad y experiencia de usuario.
+
+Contenidos:
+- Principios WCAG: perceptible, operable, comprensible y robusto.
+- Navegación mediante teclado.
+- Foco visible.
+- Etiquetas y nombres accesibles.
+- Contraste y tamaño de texto.
+- Texto alternativo.
+- Mensajes de error claros.
+- Formularios accesibles.
+- Diseño adaptable.
+- Pruebas con distintos navegadores y tamaños.
+- Pruebas de tareas con usuarios.
+- Registro y priorización de problemas.
+
+Actividades:
+- Navegar una página usando solo el teclado.
+- Revisar encabezados, etiquetas y textos alternativos.
+- Probar la interfaz en móvil, tableta y computadora.
+- Aplicar una lista de cotejo de usabilidad.
+- Realizar una prueba con tres usuarios.
+
+Producto:
+Reporte de evaluación con problemas encontrados, evidencia y propuesta de mejora.
+
+## 6. PROYECTO INTEGRADOR
+
+Título: Portal web interactivo para un proyecto de innovación.
+
+Descripción:
+El estudiante diseñará y desarrollará un sitio web responsivo para presentar un proyecto, servicio o solución tecnológica. El portal deberá resolver una necesidad concreta de un grupo de usuarios y demostrar el uso integrado de IUX, HTML, CSS y JavaScript.
+
+Requisitos mínimos:
+- Investigación breve de usuarios y necesidades.
+- Persona usuaria y escenario de uso.
+- Mapa o flujo de navegación.
+- Wireframe y prototipo.
+- HTML semántico.
+- CSS responsivo con Flexbox o Grid.
+- Paleta de colores y tipografía coherentes.
+- JavaScript para una interacción real.
+- Formulario con validación.
+- Mensajes de éxito y error.
+- Navegación mediante teclado.
+- Texto alternativo y etiquetas adecuadas.
+- Pruebas en diferentes tamaños de pantalla.
+- Documentación técnica y presentación.
+
+Ejemplos de proyecto:
+- Portal de proyectos de innovación universitaria.
+- Sistema de registro a talleres tecnológicos.
+- Catálogo de soluciones sustentables.
+- Aplicación de seguimiento de actividades académicas.
+- Sitio de orientación para estudiantes de nuevo ingreso.
+
+## 7. METODOLOGÍA DE ENSEÑANZA-APRENDIZAJE
+
+El curso se desarrollará mediante aprendizaje basado en proyectos. Cada tema se abordará con una explicación breve, análisis de ejemplos, práctica guiada, reto individual y aplicación al proyecto integrador.
+
+Proceso sugerido:
+1. Investigar al usuario y definir el problema.
+2. Organizar la información y diseñar el flujo.
+3. Crear el wireframe.
+4. Construir la estructura HTML.
+5. Aplicar estilos CSS.
+6. Agregar interacción con JavaScript.
+7. Probar accesibilidad y responsividad.
+8. Recibir retroalimentación.
+9. Mejorar y documentar la solución.
+
+## 8. PRÁCTICAS SUGERIDAS
+
+- Crear una tarjeta de presentación de un proyecto.
+- Construir un menú de navegación responsivo.
+- Diseñar una galería con CSS Grid.
+- Crear un formulario de contacto accesible.
+- Validar campos obligatorios con JavaScript.
+- Implementar un modo claro y oscuro.
+- Crear un filtro de tarjetas por categoría.
+- Desarrollar un contador o calculadora sencilla.
+- Guardar una preferencia con localStorage.
+- Evaluar una interfaz mediante una lista de cotejo.
+
+## 9. EVALUACIÓN
+
+- Investigación de usuarios y requerimientos: 15 por ciento.
+- Wireframes y prototipo: 15 por ciento.
+- Estructura HTML y semántica: 15 por ciento.
+- Diseño CSS y responsividad: 20 por ciento.
+- Interacción y JavaScript: 20 por ciento.
+- Accesibilidad, pruebas y documentación: 15 por ciento.
+
+Criterios:
+- La interfaz resuelve una necesidad claramente definida.
+- La navegación es clara y consistente.
+- La estructura HTML es semántica.
+- El diseño se adapta a diferentes pantallas.
+- Los controles tienen estados y retroalimentación.
+- JavaScript funciona sin errores críticos.
+- Los formularios validan y explican los errores.
+- La interfaz puede utilizarse con teclado.
+- El código está organizado y documentado.
+- El estudiante justifica sus decisiones de diseño.
+
+## 10. RECURSOS DIDÁCTICOS
+
+- Computadora con navegador actualizado.
+- Editor de código.
+- Herramientas para wireframes y prototipos.
+- Herramientas de inspección del navegador.
+- Validadores de HTML y CSS.
+- Herramientas de evaluación de accesibilidad.
+- Repositorio de código.
+- Plataforma educativa institucional.
+
+## 11. GLOSARIO BÁSICO
+
+IUX: disciplina que integra la interfaz y la experiencia de las personas al utilizar un producto digital.
+
+UI: elementos visuales e interactivos con los que una persona opera un sistema.
+
+UX: percepción, emociones y resultados que una persona experimenta al utilizar un producto.
+
+Usabilidad: facilidad con la que una persona puede alcanzar un objetivo mediante una interfaz.
+
+Accesibilidad: capacidad de un producto para ser utilizado por personas con distintas capacidades y tecnologías de apoyo.
+
+HTML: lenguaje de marcado utilizado para estructurar contenido web.
+
+CSS: lenguaje utilizado para definir la presentación visual de documentos web.
+
+JavaScript: lenguaje de programación utilizado para agregar comportamiento e interactividad.
+
+DOM: representación del documento HTML que permite a JavaScript consultar y modificar sus elementos.
+
+Responsive: capacidad de una interfaz para adaptarse a diferentes tamaños y condiciones de pantalla.
+
+Wireframe: representación esquemática de la estructura de una interfaz.
+
+Prototipo: representación interactiva o visual de una solución antes de su desarrollo completo.
+
+## 12. RECOMENDACIONES PARA EL ESTUDIANTE
+
+- Comprender al usuario antes de comenzar a programar.
+- Mantener separados HTML, CSS y JavaScript.
+- Utilizar nombres claros y una estructura ordenada de carpetas.
+- Probar el proyecto frecuentemente.
+- Revisar la consola del navegador para detectar errores.
+- No depender exclusivamente del color para comunicar estados.
+- Usar textos claros en botones, enlaces y mensajes.
+- Probar la navegación con teclado.
+- Verificar el funcionamiento en móvil y computadora.
+- Registrar cambios y respaldar el proyecto.
