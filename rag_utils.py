@@ -1,23 +1,37 @@
 """
-rag_utils.py
-Carga los documentos del temario, los divide en fragmentos, genera
-embeddings y construye un índice de búsqueda (FAISS) en memoria.
+rag_utils.py — versión ligera (TF-IDF), sin dependencia de torch.
 
-No necesita API keys: sentence-transformers corre localmente (CPU).
+Antes usaba sentence-transformers (embeddings neuronales), pero eso
+requiere cargar PyTorch en memoria, lo cual excede los 512 MB del plan
+gratis de Render. TF-IDF logra un resultado similar para búsqueda de
+palabras clave/frases en documentos de texto, con una fracción de la
+memoria y sin descargar ningún modelo.
 """
 
 import os
 import glob
-import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 CHUNK_SIZE = 500       # caracteres por fragmento
 CHUNK_OVERLAP = 80     # solape entre fragmentos consecutivos
-# Umbral de similitud (distancia L2, menor = más parecido).
-# Si el mejor resultado supera este valor, se considera "no encontrado".
-NOT_FOUND_THRESHOLD = 1.15
+# Umbral de similitud coseno (0 a 1, mayor = más parecido).
+# Si el mejor resultado NO supera este valor, se considera "no encontrado".
+NOT_FOUND_THRESHOLD = 0.08
+
+# Lista breve de stopwords en español para mejorar la calidad de la búsqueda.
+SPANISH_STOPWORDS = [
+    "de", "la", "que", "el", "en", "y", "a", "los", "del", "se", "las",
+    "por", "un", "para", "con", "no", "una", "su", "al", "lo", "como",
+    "más", "pero", "sus", "le", "ya", "o", "este", "sí", "porque", "esta",
+    "entre", "cuando", "muy", "sin", "sobre", "también", "me", "hasta",
+    "hay", "donde", "quien", "desde", "todo", "nos", "durante", "todos",
+    "uno", "les", "ni", "contra", "otros", "ese", "eso", "ante", "ellos",
+    "e", "esto", "mí", "antes", "algunos", "qué", "unos", "yo", "otro",
+    "otras", "otra", "él", "tanto", "esa", "estos", "mucho", "quienes",
+    "nada", "muchos", "cual", "poco", "ella", "estar", "estas", "algunas",
+    "algo", "nosotros", "es", "son", "ser", "está", "están",
+]
 
 
 def load_documents(data_dir: str) -> list[dict]:
@@ -31,7 +45,7 @@ def load_documents(data_dir: str) -> list[dict]:
 
 
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
-    """Divide un texto largo en fragmentos con solape, respetando saltos de párrafo cuando puede."""
+    """Divide un texto largo en fragmentos con solape."""
     text = text.strip()
     if len(text) <= chunk_size:
         return [text] if text else []
@@ -48,11 +62,12 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 
 
 class RAGIndex:
-    """Índice de búsqueda semántica sobre los documentos del curso."""
+    """Índice de búsqueda por palabras clave (TF-IDF) sobre los documentos del curso."""
 
     def __init__(self, data_dir: str):
-        self.model = SentenceTransformer(EMBEDDING_MODEL_NAME)
         self.chunks: list[dict] = []  # [{"text": ..., "source": ...}]
+        self.vectorizer: TfidfVectorizer | None = None
+        self.matrix = None
         self._build(data_dir)
 
     def _build(self, data_dir: str):
@@ -68,21 +83,28 @@ class RAGIndex:
             )
 
         texts = [c["text"] for c in self.chunks]
-        embeddings = self.model.encode(texts, convert_to_numpy=True, normalize_embeddings=False)
-        dimension = embeddings.shape[1]
-        self.index = faiss.IndexFlatL2(dimension)
-        self.index.add(embeddings.astype(np.float32))
+        self.vectorizer = TfidfVectorizer(
+            stop_words=SPANISH_STOPWORDS,
+            ngram_range=(1, 2),
+            lowercase=True,
+        )
+        self.matrix = self.vectorizer.fit_transform(texts)
 
     def search(self, query: str, top_k: int = 3) -> dict:
         """Busca los fragmentos más relevantes. Devuelve found=False si nada supera el umbral."""
-        query_vec = self.model.encode([query], convert_to_numpy=True).astype(np.float32)
-        distances, indices = self.index.search(query_vec, top_k)
+        query_vec = self.vectorizer.transform([query])
+        similarities = cosine_similarity(query_vec, self.matrix)[0]
 
-        best_distance = float(distances[0][0])
-        if best_distance > NOT_FOUND_THRESHOLD:
+        best_idx = similarities.argmax()
+        best_score = float(similarities[best_idx])
+
+        if best_score < NOT_FOUND_THRESHOLD:
             return {"found": False, "context": "", "sources": []}
 
-        results = [self.chunks[i] for i in indices[0] if i != -1]
+        top_indices = similarities.argsort()[::-1][:top_k]
+        top_indices = [i for i in top_indices if similarities[i] >= NOT_FOUND_THRESHOLD]
+
+        results = [self.chunks[i] for i in top_indices]
         context = "\n\n---\n\n".join(r["text"] for r in results)
         sources = sorted(set(r["source"] for r in results))
         return {"found": True, "context": context, "sources": sources}
