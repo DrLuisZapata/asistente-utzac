@@ -22,8 +22,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("course-assistant")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+
+# El catálogo de modelos de Groq cambia con frecuencia (deprecaciones, nuevas
+# versiones). En vez de fijar un solo nombre que puede dejar de existir de un
+# día a otro, probamos una lista de candidatos Llama al arrancar y usamos el
+# primero que responda. Si el usuario fija GROQ_MODEL explícitamente, esa
+# variable tiene prioridad y se usa sin probar nada más.
+GROQ_MODEL_OVERRIDE = os.environ.get("GROQ_MODEL")
+LLAMA_MODEL_CANDIDATES = [
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "llama3-70b-8192",
+    "llama3-8b-8192",
+]
 
 app = FastAPI(
     title="Asistente de Curso UTZAC (Llama + RAG)",
@@ -33,6 +47,7 @@ app = FastAPI(
 
 rag_index: RAGIndex | None = None
 groq_client: Groq | None = None
+GROQ_MODEL: str | None = None
 
 
 class AskRequest(BaseModel):
@@ -47,13 +62,36 @@ class AskResponse(BaseModel):
     latency_seconds: float
 
 
+def pick_working_model(client: Groq) -> str:
+    """Prueba cada modelo candidato con una petición mínima y usa el primero que funcione."""
+    candidates = [GROQ_MODEL_OVERRIDE] if GROQ_MODEL_OVERRIDE else LLAMA_MODEL_CANDIDATES
+    last_error = None
+    for candidate in candidates:
+        try:
+            client.chat.completions.create(
+                model=candidate,
+                messages=[{"role": "user", "content": "hola"}],
+                max_tokens=5,
+            )
+            logger.info(f"Modelo Groq seleccionado: {candidate}")
+            return candidate
+        except Exception as exc:
+            logger.warning(f"Modelo '{candidate}' no disponible: {exc}")
+            last_error = exc
+    raise RuntimeError(
+        f"Ninguno de los modelos candidatos está disponible en esta cuenta de Groq. "
+        f"Último error: {last_error}"
+    )
+
+
 @app.on_event("startup")
 def startup():
-    global rag_index, groq_client
+    global rag_index, groq_client, GROQ_MODEL
     if not GROQ_API_KEY:
         logger.warning("GROQ_API_KEY no está configurada. El endpoint /ask fallará hasta configurarla.")
     else:
         groq_client = Groq(api_key=GROQ_API_KEY)
+        GROQ_MODEL = pick_working_model(groq_client)
     rag_index = RAGIndex(DATA_DIR)
     logger.info(f"RAG listo con {len(rag_index.chunks)} fragmentos de '{DATA_DIR}'.")
 
