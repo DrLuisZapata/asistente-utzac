@@ -5,8 +5,14 @@ Flujo de una petición:
 1. Recibe una pregunta en POST /ask
 2. Busca el fragmento más relevante del temario (rag_utils.RAGIndex)
 3. Si no hay nada relevante -> responde con un mensaje claro (no inventa)
-4. Si hay contexto -> arma un prompt y llama a Llama 3 en Groq
+4. Si hay contexto -> arma un prompt y llama a Llama vía Hugging Face Inference
 5. Devuelve la respuesta en un formato JSON estándar
+
+Nota de arquitectura: se usa Hugging Face Inference (Inference Providers) en
+vez de Groq, porque Groq restringió sus modelos Llama de propósito general a
+cuentas Enterprise. Con Hugging Face usamos el mismo modelo base
+(Llama-3.1-8B-Instruct) que se ajustó con LoRA en el notebook de Colab, cuya
+licencia el usuario ya aceptó ahí.
 """
 
 import os
@@ -14,7 +20,8 @@ import time
 import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from groq import Groq
+from huggingface_hub import InferenceClient
+from huggingface_hub.errors import HfHubHTTPError
 
 from rag_utils import RAGIndex
 
@@ -22,21 +29,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("course-assistant")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+HF_TOKEN = os.environ.get("HF_TOKEN")
 
-# El catálogo de modelos de Groq cambia con frecuencia (deprecaciones, nuevas
-# versiones). En vez de fijar un solo nombre que puede dejar de existir de un
-# día a otro, probamos una lista de candidatos Llama al arrancar y usamos el
-# primero que responda. Si el usuario fija GROQ_MODEL explícitamente, esa
-# variable tiene prioridad y se usa sin probar nada más.
-GROQ_MODEL_OVERRIDE = os.environ.get("GROQ_MODEL")
+# Si el usuario fija LLAMA_MODEL explícitamente, esa variable tiene prioridad.
+# Si no, probamos esta lista de candidatos Llama (de mayor a menor tamaño) y
+# usamos el primero que responda vía Hugging Face Inference Providers.
+LLAMA_MODEL_OVERRIDE = os.environ.get("LLAMA_MODEL")
 LLAMA_MODEL_CANDIDATES = [
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "llama3-70b-8192",
-    "llama3-8b-8192",
+    "meta-llama/Llama-3.1-8B-Instruct",
+    "meta-llama/Llama-3.2-3B-Instruct",
+    "meta-llama/Llama-3.2-1B-Instruct",
 ]
 
 app = FastAPI(
@@ -46,8 +48,8 @@ app = FastAPI(
 )
 
 rag_index: RAGIndex | None = None
-groq_client: Groq | None = None
-GROQ_MODEL: str | None = None
+hf_client: InferenceClient | None = None
+LLAMA_MODEL: str | None = None
 
 
 class AskRequest(BaseModel):
@@ -62,9 +64,9 @@ class AskResponse(BaseModel):
     latency_seconds: float
 
 
-def pick_working_model(client: Groq) -> str:
+def pick_working_model(client: InferenceClient) -> str:
     """Prueba cada modelo candidato con una petición mínima y usa el primero que funcione."""
-    candidates = [GROQ_MODEL_OVERRIDE] if GROQ_MODEL_OVERRIDE else LLAMA_MODEL_CANDIDATES
+    candidates = [LLAMA_MODEL_OVERRIDE] if LLAMA_MODEL_OVERRIDE else LLAMA_MODEL_CANDIDATES
     last_error = None
     for candidate in candidates:
         try:
@@ -73,25 +75,25 @@ def pick_working_model(client: Groq) -> str:
                 messages=[{"role": "user", "content": "hola"}],
                 max_tokens=5,
             )
-            logger.info(f"Modelo Groq seleccionado: {candidate}")
+            logger.info(f"Modelo Llama seleccionado (Hugging Face): {candidate}")
             return candidate
         except Exception as exc:
             logger.warning(f"Modelo '{candidate}' no disponible: {exc}")
             last_error = exc
     raise RuntimeError(
-        f"Ninguno de los modelos candidatos está disponible en esta cuenta de Groq. "
-        f"Último error: {last_error}"
+        f"Ninguno de los modelos Llama candidatos está disponible vía Hugging Face "
+        f"Inference para esta cuenta. Último error: {last_error}"
     )
 
 
 @app.on_event("startup")
 def startup():
-    global rag_index, groq_client, GROQ_MODEL
-    if not GROQ_API_KEY:
-        logger.warning("GROQ_API_KEY no está configurada. El endpoint /ask fallará hasta configurarla.")
+    global rag_index, hf_client, LLAMA_MODEL
+    if not HF_TOKEN:
+        logger.warning("HF_TOKEN no está configurada. El endpoint /ask fallará hasta configurarla.")
     else:
-        groq_client = Groq(api_key=GROQ_API_KEY)
-        GROQ_MODEL = pick_working_model(groq_client)
+        hf_client = InferenceClient(token=HF_TOKEN)
+        LLAMA_MODEL = pick_working_model(hf_client)
     rag_index = RAGIndex(DATA_DIR)
     logger.info(f"RAG listo con {len(rag_index.chunks)} fragmentos de '{DATA_DIR}'.")
 
@@ -101,7 +103,8 @@ def health():
     return {
         "status": "ok",
         "chunks_loaded": len(rag_index.chunks) if rag_index else 0,
-        "groq_configured": groq_client is not None,
+        "hf_configured": hf_client is not None,
+        "model": LLAMA_MODEL,
     }
 
 
@@ -109,8 +112,8 @@ def health():
 def ask(payload: AskRequest):
     if rag_index is None:
         raise HTTPException(status_code=503, detail="El índice RAG aún no está listo.")
-    if groq_client is None:
-        raise HTTPException(status_code=500, detail="GROQ_API_KEY no configurada en el servidor.")
+    if hf_client is None:
+        raise HTTPException(status_code=500, detail="HF_TOKEN no configurada en el servidor.")
 
     start = time.time()
     question = payload.question.strip()
@@ -127,7 +130,7 @@ def ask(payload: AskRequest):
             ),
             found_context=False,
             sources=[],
-            model=GROQ_MODEL,
+            model=LLAMA_MODEL or "n/a",
             latency_seconds=round(time.time() - start, 3),
         )
 
@@ -141,8 +144,8 @@ def ask(payload: AskRequest):
     user_prompt = f"CONTEXTO DEL TEMARIO:\n{result['context']}\n\nPREGUNTA DEL ALUMNO:\n{question}"
 
     try:
-        completion = groq_client.chat.completions.create(
-            model=GROQ_MODEL,
+        completion = hf_client.chat.completions.create(
+            model=LLAMA_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -151,15 +154,15 @@ def ask(payload: AskRequest):
             max_tokens=500,
         )
         answer = completion.choices[0].message.content
-    except Exception as exc:
-        logger.exception("Error llamando a Groq")
+    except (HfHubHTTPError, Exception) as exc:
+        logger.exception("Error llamando a Hugging Face Inference")
         raise HTTPException(status_code=502, detail=f"Error al generar la respuesta: {exc}")
 
     return AskResponse(
         answer=answer,
         found_context=True,
         sources=result["sources"],
-        model=GROQ_MODEL,
+        model=LLAMA_MODEL,
         latency_seconds=round(time.time() - start, 3),
     )
 
