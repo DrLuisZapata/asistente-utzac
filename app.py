@@ -156,10 +156,11 @@ def ask(payload: AskRequest):
             temperature=0.3,
             max_tokens=500,
         )
+        logger.info(f"Tipo de respuesta de GitHub Models: {type(completion)} | contenido: {str(completion)[:300]}")
         answer = completion.choices[0].message.content
     except Exception as exc:
-        logger.exception("Error llamando a GitHub Models")
-        raise HTTPException(status_code=502, detail=f"Error al generar la respuesta: {exc}")
+        logger.exception(f"Error llamando a GitHub Models (tipo: {type(exc).__name__})")
+        raise HTTPException(status_code=502, detail=f"Error al generar la respuesta ({type(exc).__name__}): {exc}")
 
     return AskResponse(
         answer=answer,
