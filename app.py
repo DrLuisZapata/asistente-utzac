@@ -8,21 +8,19 @@ Flujo de una petición:
 4. Si hay contexto -> arma un prompt y llama a Llama vía GitHub Models
 5. Devuelve la respuesta en un formato JSON estándar
 
-Nota de arquitectura: se usa GitHub Models (https://github.com/marketplace/models)
-como proveedor de inferencia. Se probaron antes Groq (sus modelos Llama de
-propósito general están restringidos a cuentas Enterprise) y Hugging Face
-Inference Providers (el plan gratis da menos de $0.10/mes en créditos, muy
-poco para uso real). GitHub Models ofrece Llama 3.3/3.1 gratis con límites
-de tasa generosos, usando la cuenta de GitHub que ya se tenía para el
-repositorio del proyecto.
+Nota de arquitectura: se llama a GitHub Models (https://github.com/marketplace/models)
+directamente con `requests` en vez del SDK `openai`, porque el SDK tuvo un
+comportamiento inconsistente con este endpoint (a veces regresaba texto plano
+en vez del objeto JSON esperado). Llamar a la API REST directamente da control
+total y facilita ver el cuerpo exacto de la respuesta si algo falla.
 """
 
 import os
 import time
 import logging
+import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from openai import OpenAI
 
 from rag_utils import RAGIndex
 
@@ -31,7 +29,7 @@ logger = logging.getLogger("course-assistant")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-GITHUB_MODELS_BASE_URL = "https://models.github.ai/inference"
+GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions"
 
 # Si el usuario fija LLAMA_MODEL explícitamente, esa variable tiene prioridad.
 # Si no, probamos esta lista de candidatos (el catálogo de GitHub Models ha
@@ -51,7 +49,6 @@ app = FastAPI(
 )
 
 rag_index: RAGIndex | None = None
-gh_client: OpenAI | None = None
 LLAMA_MODEL: str | None = None
 
 
@@ -67,17 +64,47 @@ class AskResponse(BaseModel):
     latency_seconds: float
 
 
-def pick_working_model(client: OpenAI) -> str:
+def call_github_models(model: str, messages: list[dict], max_tokens: int = 500, temperature: float = 0.3) -> str:
+    """Llama directamente a la API REST de GitHub Models y regresa el texto de la respuesta."""
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Content-Type": "application/json",
+        "Accept": "application/vnd.github+json",
+    }
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    response = requests.post(GITHUB_MODELS_URL, headers=headers, json=payload, timeout=60)
+
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"HTTP {response.status_code} del modelo '{model}': {response.text[:500]}"
+        )
+
+    try:
+        data = response.json()
+    except ValueError:
+        raise RuntimeError(
+            f"Respuesta no-JSON del modelo '{model}' (status {response.status_code}): "
+            f"{response.text[:500]}"
+        )
+
+    try:
+        return data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError):
+        raise RuntimeError(f"Formato de respuesta inesperado del modelo '{model}': {data}")
+
+
+def pick_working_model() -> str:
     """Prueba cada modelo candidato con una petición mínima y usa el primero que funcione."""
     candidates = [LLAMA_MODEL_OVERRIDE] if LLAMA_MODEL_OVERRIDE else LLAMA_MODEL_CANDIDATES
     last_error = None
     for candidate in candidates:
         try:
-            client.chat.completions.create(
-                model=candidate,
-                messages=[{"role": "user", "content": "hola"}],
-                max_tokens=5,
-            )
+            call_github_models(candidate, [{"role": "user", "content": "hola"}], max_tokens=5)
             logger.info(f"Modelo Llama seleccionado (GitHub Models): {candidate}")
             return candidate
         except Exception as exc:
@@ -91,12 +118,11 @@ def pick_working_model(client: OpenAI) -> str:
 
 @app.on_event("startup")
 def startup():
-    global rag_index, gh_client, LLAMA_MODEL
+    global rag_index, LLAMA_MODEL
     if not GITHUB_TOKEN:
         logger.warning("GITHUB_TOKEN no está configurada. El endpoint /ask fallará hasta configurarla.")
     else:
-        gh_client = OpenAI(base_url=GITHUB_MODELS_BASE_URL, api_key=GITHUB_TOKEN)
-        LLAMA_MODEL = pick_working_model(gh_client)
+        LLAMA_MODEL = pick_working_model()
     rag_index = RAGIndex(DATA_DIR)
     logger.info(f"RAG listo con {len(rag_index.chunks)} fragmentos de '{DATA_DIR}'.")
 
@@ -106,7 +132,7 @@ def health():
     return {
         "status": "ok",
         "chunks_loaded": len(rag_index.chunks) if rag_index else 0,
-        "github_models_configured": gh_client is not None,
+        "github_models_configured": GITHUB_TOKEN is not None,
         "model": LLAMA_MODEL,
     }
 
@@ -115,8 +141,8 @@ def health():
 def ask(payload: AskRequest):
     if rag_index is None:
         raise HTTPException(status_code=503, detail="El índice RAG aún no está listo.")
-    if gh_client is None:
-        raise HTTPException(status_code=500, detail="GITHUB_TOKEN no configurada en el servidor.")
+    if not GITHUB_TOKEN or not LLAMA_MODEL:
+        raise HTTPException(status_code=500, detail="GITHUB_TOKEN no configurada o ningún modelo disponible.")
 
     start = time.time()
     question = payload.question.strip()
@@ -133,7 +159,7 @@ def ask(payload: AskRequest):
             ),
             found_context=False,
             sources=[],
-            model=LLAMA_MODEL or "n/a",
+            model=LLAMA_MODEL,
             latency_seconds=round(time.time() - start, 3),
         )
 
@@ -147,20 +173,16 @@ def ask(payload: AskRequest):
     user_prompt = f"CONTEXTO DEL TEMARIO:\n{result['context']}\n\nPREGUNTA DEL ALUMNO:\n{question}"
 
     try:
-        completion = gh_client.chat.completions.create(
-            model=LLAMA_MODEL,
-            messages=[
+        answer = call_github_models(
+            LLAMA_MODEL,
+            [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.3,
-            max_tokens=500,
         )
-        logger.info(f"Tipo de respuesta de GitHub Models: {type(completion)} | contenido: {str(completion)[:300]}")
-        answer = completion.choices[0].message.content
     except Exception as exc:
         logger.exception(f"Error llamando a GitHub Models (tipo: {type(exc).__name__})")
-        raise HTTPException(status_code=502, detail=f"Error al generar la respuesta ({type(exc).__name__}): {exc}")
+        raise HTTPException(status_code=502, detail=f"Error al generar la respuesta: {exc}")
 
     return AskResponse(
         answer=answer,
