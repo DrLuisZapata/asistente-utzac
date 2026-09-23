@@ -5,14 +5,16 @@ Flujo de una petición:
 1. Recibe una pregunta en POST /ask
 2. Busca el fragmento más relevante del temario (rag_utils.RAGIndex)
 3. Si no hay nada relevante -> responde con un mensaje claro (no inventa)
-4. Si hay contexto -> arma un prompt y llama a Llama vía Hugging Face Inference
+4. Si hay contexto -> arma un prompt y llama a Llama vía GitHub Models
 5. Devuelve la respuesta en un formato JSON estándar
 
-Nota de arquitectura: se usa Hugging Face Inference (Inference Providers) en
-vez de Groq, porque Groq restringió sus modelos Llama de propósito general a
-cuentas Enterprise. Con Hugging Face usamos el mismo modelo base
-(Llama-3.1-8B-Instruct) que se ajustó con LoRA en el notebook de Colab, cuya
-licencia el usuario ya aceptó ahí.
+Nota de arquitectura: se usa GitHub Models (https://github.com/marketplace/models)
+como proveedor de inferencia. Se probaron antes Groq (sus modelos Llama de
+propósito general están restringidos a cuentas Enterprise) y Hugging Face
+Inference Providers (el plan gratis da menos de $0.10/mes en créditos, muy
+poco para uso real). GitHub Models ofrece Llama 3.3/3.1 gratis con límites
+de tasa generosos, usando la cuenta de GitHub que ya se tenía para el
+repositorio del proyecto.
 """
 
 import os
@@ -20,8 +22,7 @@ import time
 import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from huggingface_hub import InferenceClient
-from huggingface_hub.errors import HfHubHTTPError
+from openai import OpenAI
 
 from rag_utils import RAGIndex
 
@@ -29,16 +30,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("course-assistant")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
-HF_TOKEN = os.environ.get("HF_TOKEN")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+GITHUB_MODELS_BASE_URL = "https://models.github.ai/inference"
 
 # Si el usuario fija LLAMA_MODEL explícitamente, esa variable tiene prioridad.
-# Si no, probamos esta lista de candidatos Llama (de mayor a menor tamaño) y
-# usamos el primero que responda vía Hugging Face Inference Providers.
+# Si no, probamos esta lista de candidatos (el catálogo de GitHub Models ha
+# usado distintas convenciones de nombre) y usamos el primero que responda.
 LLAMA_MODEL_OVERRIDE = os.environ.get("LLAMA_MODEL")
 LLAMA_MODEL_CANDIDATES = [
-    "meta-llama/Llama-3.1-8B-Instruct",
-    "meta-llama/Llama-3.2-3B-Instruct",
-    "meta-llama/Llama-3.2-1B-Instruct",
+    "meta/Llama-3.3-70B-Instruct",
+    "meta/Meta-Llama-3.1-8B-Instruct",
+    "meta/Llama-3.2-11B-Vision-Instruct",
+    "meta/Meta-Llama-3.1-70B-Instruct",
 ]
 
 app = FastAPI(
@@ -48,7 +51,7 @@ app = FastAPI(
 )
 
 rag_index: RAGIndex | None = None
-hf_client: InferenceClient | None = None
+gh_client: OpenAI | None = None
 LLAMA_MODEL: str | None = None
 
 
@@ -64,7 +67,7 @@ class AskResponse(BaseModel):
     latency_seconds: float
 
 
-def pick_working_model(client: InferenceClient) -> str:
+def pick_working_model(client: OpenAI) -> str:
     """Prueba cada modelo candidato con una petición mínima y usa el primero que funcione."""
     candidates = [LLAMA_MODEL_OVERRIDE] if LLAMA_MODEL_OVERRIDE else LLAMA_MODEL_CANDIDATES
     last_error = None
@@ -75,25 +78,25 @@ def pick_working_model(client: InferenceClient) -> str:
                 messages=[{"role": "user", "content": "hola"}],
                 max_tokens=5,
             )
-            logger.info(f"Modelo Llama seleccionado (Hugging Face): {candidate}")
+            logger.info(f"Modelo Llama seleccionado (GitHub Models): {candidate}")
             return candidate
         except Exception as exc:
             logger.warning(f"Modelo '{candidate}' no disponible: {exc}")
             last_error = exc
     raise RuntimeError(
-        f"Ninguno de los modelos Llama candidatos está disponible vía Hugging Face "
-        f"Inference para esta cuenta. Último error: {last_error}"
+        f"Ninguno de los modelos Llama candidatos está disponible vía GitHub Models "
+        f"para esta cuenta. Último error: {last_error}"
     )
 
 
 @app.on_event("startup")
 def startup():
-    global rag_index, hf_client, LLAMA_MODEL
-    if not HF_TOKEN:
-        logger.warning("HF_TOKEN no está configurada. El endpoint /ask fallará hasta configurarla.")
+    global rag_index, gh_client, LLAMA_MODEL
+    if not GITHUB_TOKEN:
+        logger.warning("GITHUB_TOKEN no está configurada. El endpoint /ask fallará hasta configurarla.")
     else:
-        hf_client = InferenceClient(token=HF_TOKEN)
-        LLAMA_MODEL = pick_working_model(hf_client)
+        gh_client = OpenAI(base_url=GITHUB_MODELS_BASE_URL, api_key=GITHUB_TOKEN)
+        LLAMA_MODEL = pick_working_model(gh_client)
     rag_index = RAGIndex(DATA_DIR)
     logger.info(f"RAG listo con {len(rag_index.chunks)} fragmentos de '{DATA_DIR}'.")
 
@@ -103,7 +106,7 @@ def health():
     return {
         "status": "ok",
         "chunks_loaded": len(rag_index.chunks) if rag_index else 0,
-        "hf_configured": hf_client is not None,
+        "github_models_configured": gh_client is not None,
         "model": LLAMA_MODEL,
     }
 
@@ -112,8 +115,8 @@ def health():
 def ask(payload: AskRequest):
     if rag_index is None:
         raise HTTPException(status_code=503, detail="El índice RAG aún no está listo.")
-    if hf_client is None:
-        raise HTTPException(status_code=500, detail="HF_TOKEN no configurada en el servidor.")
+    if gh_client is None:
+        raise HTTPException(status_code=500, detail="GITHUB_TOKEN no configurada en el servidor.")
 
     start = time.time()
     question = payload.question.strip()
@@ -144,7 +147,7 @@ def ask(payload: AskRequest):
     user_prompt = f"CONTEXTO DEL TEMARIO:\n{result['context']}\n\nPREGUNTA DEL ALUMNO:\n{question}"
 
     try:
-        completion = hf_client.chat.completions.create(
+        completion = gh_client.chat.completions.create(
             model=LLAMA_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -154,8 +157,8 @@ def ask(payload: AskRequest):
             max_tokens=500,
         )
         answer = completion.choices[0].message.content
-    except (HfHubHTTPError, Exception) as exc:
-        logger.exception("Error llamando a Hugging Face Inference")
+    except Exception as exc:
+        logger.exception("Error llamando a GitHub Models")
         raise HTTPException(status_code=502, detail=f"Error al generar la respuesta: {exc}")
 
     return AskResponse(
