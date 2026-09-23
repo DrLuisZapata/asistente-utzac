@@ -69,7 +69,7 @@ def call_github_models(model: str, messages: list[dict], max_tokens: int = 500, 
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Content-Type": "application/json",
-        "Accept": "application/vnd.github+json",
+        "User-Agent": "utzac-course-assistant/1.0",
     }
     payload = {
         "model": model,
@@ -88,8 +88,8 @@ def call_github_models(model: str, messages: list[dict], max_tokens: int = 500, 
         data = response.json()
     except ValueError:
         raise RuntimeError(
-            f"Respuesta no-JSON del modelo '{model}' (status {response.status_code}): "
-            f"{response.text[:500]}"
+            f"Respuesta no-JSON del modelo '{model}' (status {response.status_code}, "
+            f"content-type: {response.headers.get('content-type')}): {response.text[:300]}"
         )
 
     try:
