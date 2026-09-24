@@ -5,7 +5,7 @@ Flujo de una petición:
 1. Recibe una pregunta en POST /ask
 2. Busca el fragmento más relevante del temario (rag_utils.RAGIndex)
 3. Si no hay nada relevante -> responde con un mensaje claro (no inventa)
-4. Si hay contexto -> arma un prompt y llama a Llama vía Cerebras Cloud
+4. Si hay contexto -> arma un prompt y llama a Llama vía SambaNova Cloud
 5. Devuelve la respuesta en un formato JSON estándar
 
 Nota de arquitectura — historial de proveedores probados:
@@ -18,8 +18,10 @@ Nota de arquitectura — historial de proveedores probados:
   ahora un texto genérico "OK" sin generar nada.
 - OpenRouter: capa gratuita confirmada vigente, pero su registro presentó
   fallos técnicos persistentes (error genérico incluso en modo incógnito).
-- Cerebras Cloud (actual): capa gratuita vigente, con Llama 3.3 70B
-  disponible y hardware wafer-scale (respuestas muy rápidas).
+- Cerebras Cloud: capa gratuita vigente, pero retiró los modelos Llama de
+  su catálogo (ahora solo ofrece GPT-OSS y Qwen).
+- SambaNova Cloud (actual): capa gratuita sin tarjeta (solo correo), con
+  Llama 3.3 70B disponible de forma confirmada.
 """
 
 import os
@@ -35,9 +37,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("course-assistant")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
-CEREBRAS_API_KEY = os.environ.get("CEREBRAS_API_KEY")
-CEREBRAS_CHAT_URL = "https://api.cerebras.ai/v1/chat/completions"
-CEREBRAS_MODELS_URL = "https://api.cerebras.ai/v1/models"
+SAMBANOVA_API_KEY = os.environ.get("SAMBANOVA_API_KEY")
+SAMBANOVA_CHAT_URL = "https://api.sambanova.ai/v1/chat/completions"
+SAMBANOVA_MODELS_URL = "https://api.sambanova.ai/v1/models"
 
 # Si el usuario fija LLAMA_MODEL explícitamente, esa variable tiene prioridad
 # y se usa directamente sin consultar el catálogo.
@@ -65,10 +67,10 @@ class AskResponse(BaseModel):
     latency_seconds: float
 
 
-def call_cerebras(model: str, messages: list[dict], max_tokens: int = 500, temperature: float = 0.3) -> str:
-    """Llama a la API REST de Cerebras Cloud y regresa el texto de la respuesta."""
+def call_sambanova(model: str, messages: list[dict], max_tokens: int = 500, temperature: float = 0.3) -> str:
+    """Llama a la API REST de SambaNova Cloud y regresa el texto de la respuesta."""
     headers = {
-        "Authorization": f"Bearer {CEREBRAS_API_KEY}",
+        "Authorization": f"Bearer {SAMBANOVA_API_KEY}",
         "Content-Type": "application/json",
     }
     payload = {
@@ -77,7 +79,7 @@ def call_cerebras(model: str, messages: list[dict], max_tokens: int = 500, tempe
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    response = requests.post(CEREBRAS_CHAT_URL, headers=headers, json=payload, timeout=60)
+    response = requests.post(SAMBANOVA_CHAT_URL, headers=headers, json=payload, timeout=60)
 
     if response.status_code != 200:
         raise RuntimeError(
@@ -93,7 +95,7 @@ def call_cerebras(model: str, messages: list[dict], max_tokens: int = 500, tempe
         )
 
     if "error" in data:
-        raise RuntimeError(f"Cerebras regresó un error para '{model}': {data['error']}")
+        raise RuntimeError(f"SambaNova regresó un error para '{model}': {data['error']}")
 
     try:
         return data["choices"][0]["message"]["content"]
@@ -103,20 +105,20 @@ def call_cerebras(model: str, messages: list[dict], max_tokens: int = 500, tempe
 
 def discover_llama_model() -> str:
     """
-    Consulta GET /v1/models de Cerebras y elige automáticamente un modelo
+    Consulta GET /v1/models de SambaNova y elige automáticamente un modelo
     Llama disponible en la cuenta. Esto evita tener que fijar un nombre de
     modelo a mano y que se rompa cuando el proveedor cambia su catálogo
-    (ya pasó con Groq, GitHub Models y el propio Cerebras en este proyecto).
+    (ya pasó con Groq, GitHub Models y Cerebras en este mismo proyecto).
     """
     if LLAMA_MODEL_OVERRIDE:
         logger.info(f"Usando modelo fijado manualmente: {LLAMA_MODEL_OVERRIDE}")
         return LLAMA_MODEL_OVERRIDE
 
-    headers = {"Authorization": f"Bearer {CEREBRAS_API_KEY}"}
-    response = requests.get(CEREBRAS_MODELS_URL, headers=headers, timeout=30)
+    headers = {"Authorization": f"Bearer {SAMBANOVA_API_KEY}"}
+    response = requests.get(SAMBANOVA_MODELS_URL, headers=headers, timeout=30)
     if response.status_code != 200:
         raise RuntimeError(
-            f"No se pudo consultar el catálogo de modelos de Cerebras "
+            f"No se pudo consultar el catálogo de modelos de SambaNova "
             f"(HTTP {response.status_code}): {response.text[:500]}"
         )
 
@@ -127,14 +129,14 @@ def discover_llama_model() -> str:
         raise RuntimeError(f"No se pudo interpretar el catálogo de modelos: {exc}")
 
     if not model_ids:
-        raise RuntimeError("El catálogo de Cerebras regresó una lista de modelos vacía.")
+        raise RuntimeError("El catálogo de SambaNova regresó una lista de modelos vacía.")
 
-    logger.info(f"Modelos disponibles en esta cuenta de Cerebras: {model_ids}")
+    logger.info(f"Modelos disponibles en esta cuenta de SambaNova: {model_ids}")
 
     llama_models = [m for m in model_ids if "llama" in m.lower()]
     if not llama_models:
         raise RuntimeError(
-            f"Esta cuenta de Cerebras no tiene ningún modelo Llama disponible. "
+            f"Esta cuenta de SambaNova no tiene ningún modelo Llama disponible. "
             f"Modelos que sí tiene: {model_ids}. Puedes fijar uno manualmente "
             f"con la variable de entorno LLAMA_MODEL."
         )
@@ -144,16 +146,16 @@ def discover_llama_model() -> str:
     chosen = llama_models[0]
 
     # Verificación rápida de que el modelo elegido realmente responde.
-    call_cerebras(chosen, [{"role": "user", "content": "hola"}], max_tokens=5)
-    logger.info(f"Modelo Llama seleccionado (Cerebras): {chosen}")
+    call_sambanova(chosen, [{"role": "user", "content": "hola"}], max_tokens=5)
+    logger.info(f"Modelo Llama seleccionado (SambaNova): {chosen}")
     return chosen
 
 
 @app.on_event("startup")
 def startup():
     global rag_index, LLAMA_MODEL
-    if not CEREBRAS_API_KEY:
-        logger.warning("CEREBRAS_API_KEY no está configurada. El endpoint /ask fallará hasta configurarla.")
+    if not SAMBANOVA_API_KEY:
+        logger.warning("SAMBANOVA_API_KEY no está configurada. El endpoint /ask fallará hasta configurarla.")
     else:
         LLAMA_MODEL = discover_llama_model()
     rag_index = RAGIndex(DATA_DIR)
@@ -165,7 +167,7 @@ def health():
     return {
         "status": "ok",
         "chunks_loaded": len(rag_index.chunks) if rag_index else 0,
-        "cerebras_configured": CEREBRAS_API_KEY is not None,
+        "sambanova_configured": SAMBANOVA_API_KEY is not None,
         "model": LLAMA_MODEL,
     }
 
@@ -174,8 +176,8 @@ def health():
 def ask(payload: AskRequest):
     if rag_index is None:
         raise HTTPException(status_code=503, detail="El índice RAG aún no está listo.")
-    if not CEREBRAS_API_KEY or not LLAMA_MODEL:
-        raise HTTPException(status_code=500, detail="CEREBRAS_API_KEY no configurada o ningún modelo disponible.")
+    if not SAMBANOVA_API_KEY or not LLAMA_MODEL:
+        raise HTTPException(status_code=500, detail="SAMBANOVA_API_KEY no configurada o ningún modelo disponible.")
 
     start = time.time()
     question = payload.question.strip()
@@ -206,7 +208,7 @@ def ask(payload: AskRequest):
     user_prompt = f"CONTEXTO DEL TEMARIO:\n{result['context']}\n\nPREGUNTA DEL ALUMNO:\n{question}"
 
     try:
-        answer = call_cerebras(
+        answer = call_sambanova(
             LLAMA_MODEL,
             [
                 {"role": "system", "content": system_prompt},
@@ -214,7 +216,7 @@ def ask(payload: AskRequest):
             ],
         )
     except Exception as exc:
-        logger.exception(f"Error llamando a Cerebras (tipo: {type(exc).__name__})")
+        logger.exception(f"Error llamando a SambaNova (tipo: {type(exc).__name__})")
         raise HTTPException(status_code=502, detail=f"Error al generar la respuesta: {exc}")
 
     return AskResponse(
