@@ -68,7 +68,11 @@ class AskResponse(BaseModel):
 
 
 def call_sambanova(model: str, messages: list[dict], max_tokens: int = 500, temperature: float = 0.3) -> str:
-    """Llama a la API REST de SambaNova Cloud y regresa el texto de la respuesta."""
+    """Llama a la API REST de SambaNova Cloud y regresa el texto de la respuesta.
+
+    Reintenta una vez si el modelo responde 429 (alta demanda temporal en el
+    nivel gratuito), esperando unos segundos antes de reintentar.
+    """
     headers = {
         "Authorization": f"Bearer {SAMBANOVA_API_KEY}",
         "Content-Type": "application/json",
@@ -79,7 +83,12 @@ def call_sambanova(model: str, messages: list[dict], max_tokens: int = 500, temp
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+
     response = requests.post(SAMBANOVA_CHAT_URL, headers=headers, json=payload, timeout=60)
+    if response.status_code == 429:
+        logger.warning(f"429 (alta demanda) para '{model}', reintentando en 3s...")
+        time.sleep(3)
+        response = requests.post(SAMBANOVA_CHAT_URL, headers=headers, json=payload, timeout=60)
 
     if response.status_code != 200:
         raise RuntimeError(
@@ -145,8 +154,18 @@ def discover_llama_model() -> str:
     llama_models.sort(key=lambda m: "70b" not in m.lower())
     chosen = llama_models[0]
 
-    # Verificación rápida de que el modelo elegido realmente responde.
-    call_sambanova(chosen, [{"role": "user", "content": "hola"}], max_tokens=5)
+    # Verificación rápida de que el modelo elegido responde. Un error temporal
+    # (por ejemplo 429 por alta demanda del modelo gratuito) no debe tumbar el
+    # arranque: el modelo SÍ existe en el catálogo, solo puede estar ocupado
+    # en este instante. Solo se registra como advertencia.
+    try:
+        call_sambanova(chosen, [{"role": "user", "content": "hola"}], max_tokens=5)
+    except Exception as exc:
+        logger.warning(
+            f"El modelo '{chosen}' está en el catálogo pero la prueba inicial falló "
+            f"(puede ser demanda temporal alta): {exc}"
+        )
+
     logger.info(f"Modelo Llama seleccionado (SambaNova): {chosen}")
     return chosen
 
