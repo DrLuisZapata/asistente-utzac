@@ -5,14 +5,21 @@ Flujo de una petición:
 1. Recibe una pregunta en POST /ask
 2. Busca el fragmento más relevante del temario (rag_utils.RAGIndex)
 3. Si no hay nada relevante -> responde con un mensaje claro (no inventa)
-4. Si hay contexto -> arma un prompt y llama a Llama vía GitHub Models
+4. Si hay contexto -> arma un prompt y llama a Llama vía Cerebras Cloud
 5. Devuelve la respuesta en un formato JSON estándar
 
-Nota de arquitectura: se llama a GitHub Models (https://github.com/marketplace/models)
-directamente con `requests` en vez del SDK `openai`, porque el SDK tuvo un
-comportamiento inconsistente con este endpoint (a veces regresaba texto plano
-en vez del objeto JSON esperado). Llamar a la API REST directamente da control
-total y facilita ver el cuerpo exacto de la respuesta si algo falla.
+Nota de arquitectura — historial de proveedores probados:
+- Groq: sus modelos Llama de propósito general quedaron restringidos a
+  cuentas Enterprise (verificado contra su endpoint de modelos).
+- Hugging Face Inference Providers: el plan gratis da menos de $0.10/mes en
+  créditos, insuficiente para uso real.
+- GitHub Models: fue RETIRADO POR COMPLETO el 30 de julio de 2026 (confirmado
+  en docs.github.com/en/github-models); cualquier llamada a su API regresa
+  ahora un texto genérico "OK" sin generar nada.
+- OpenRouter: capa gratuita confirmada vigente, pero su registro presentó
+  fallos técnicos persistentes (error genérico incluso en modo incógnito).
+- Cerebras Cloud (actual): capa gratuita vigente, con Llama 3.3 70B
+  disponible y hardware wafer-scale (respuestas muy rápidas).
 """
 
 import os
@@ -28,18 +35,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("course-assistant")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions"
+CEREBRAS_API_KEY = os.environ.get("CEREBRAS_API_KEY")
+CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
 
 # Si el usuario fija LLAMA_MODEL explícitamente, esa variable tiene prioridad.
-# Si no, probamos esta lista de candidatos (el catálogo de GitHub Models ha
-# usado distintas convenciones de nombre) y usamos el primero que responda.
+# Si no, probamos esta lista de candidatos y usamos el primero que responda.
 LLAMA_MODEL_OVERRIDE = os.environ.get("LLAMA_MODEL")
 LLAMA_MODEL_CANDIDATES = [
-    "meta/Llama-3.3-70B-Instruct",
-    "meta/Meta-Llama-3.1-8B-Instruct",
-    "meta/Llama-3.2-11B-Vision-Instruct",
-    "meta/Meta-Llama-3.1-70B-Instruct",
+    "llama-3.3-70b",
+    "llama3.1-8b",
 ]
 
 app = FastAPI(
@@ -64,12 +68,11 @@ class AskResponse(BaseModel):
     latency_seconds: float
 
 
-def call_github_models(model: str, messages: list[dict], max_tokens: int = 500, temperature: float = 0.3) -> str:
-    """Llama directamente a la API REST de GitHub Models y regresa el texto de la respuesta."""
+def call_cerebras(model: str, messages: list[dict], max_tokens: int = 500, temperature: float = 0.3) -> str:
+    """Llama a la API REST de Cerebras Cloud y regresa el texto de la respuesta."""
     headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Authorization": f"Bearer {CEREBRAS_API_KEY}",
         "Content-Type": "application/json",
-        "User-Agent": "utzac-course-assistant/1.0",
     }
     payload = {
         "model": model,
@@ -77,7 +80,7 @@ def call_github_models(model: str, messages: list[dict], max_tokens: int = 500, 
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    response = requests.post(GITHUB_MODELS_URL, headers=headers, json=payload, timeout=60)
+    response = requests.post(CEREBRAS_URL, headers=headers, json=payload, timeout=60)
 
     if response.status_code != 200:
         raise RuntimeError(
@@ -92,6 +95,9 @@ def call_github_models(model: str, messages: list[dict], max_tokens: int = 500, 
             f"content-type: {response.headers.get('content-type')}): {response.text[:300]}"
         )
 
+    if "error" in data:
+        raise RuntimeError(f"Cerebras regresó un error para '{model}': {data['error']}")
+
     try:
         return data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError):
@@ -104,14 +110,14 @@ def pick_working_model() -> str:
     last_error = None
     for candidate in candidates:
         try:
-            call_github_models(candidate, [{"role": "user", "content": "hola"}], max_tokens=5)
-            logger.info(f"Modelo Llama seleccionado (GitHub Models): {candidate}")
+            call_cerebras(candidate, [{"role": "user", "content": "hola"}], max_tokens=5)
+            logger.info(f"Modelo Llama seleccionado (Cerebras): {candidate}")
             return candidate
         except Exception as exc:
             logger.warning(f"Modelo '{candidate}' no disponible: {exc}")
             last_error = exc
     raise RuntimeError(
-        f"Ninguno de los modelos Llama candidatos está disponible vía GitHub Models "
+        f"Ninguno de los modelos Llama candidatos está disponible vía Cerebras "
         f"para esta cuenta. Último error: {last_error}"
     )
 
@@ -119,8 +125,8 @@ def pick_working_model() -> str:
 @app.on_event("startup")
 def startup():
     global rag_index, LLAMA_MODEL
-    if not GITHUB_TOKEN:
-        logger.warning("GITHUB_TOKEN no está configurada. El endpoint /ask fallará hasta configurarla.")
+    if not CEREBRAS_API_KEY:
+        logger.warning("CEREBRAS_API_KEY no está configurada. El endpoint /ask fallará hasta configurarla.")
     else:
         LLAMA_MODEL = pick_working_model()
     rag_index = RAGIndex(DATA_DIR)
@@ -132,7 +138,7 @@ def health():
     return {
         "status": "ok",
         "chunks_loaded": len(rag_index.chunks) if rag_index else 0,
-        "github_models_configured": GITHUB_TOKEN is not None,
+        "cerebras_configured": CEREBRAS_API_KEY is not None,
         "model": LLAMA_MODEL,
     }
 
@@ -141,8 +147,8 @@ def health():
 def ask(payload: AskRequest):
     if rag_index is None:
         raise HTTPException(status_code=503, detail="El índice RAG aún no está listo.")
-    if not GITHUB_TOKEN or not LLAMA_MODEL:
-        raise HTTPException(status_code=500, detail="GITHUB_TOKEN no configurada o ningún modelo disponible.")
+    if not CEREBRAS_API_KEY or not LLAMA_MODEL:
+        raise HTTPException(status_code=500, detail="CEREBRAS_API_KEY no configurada o ningún modelo disponible.")
 
     start = time.time()
     question = payload.question.strip()
@@ -173,7 +179,7 @@ def ask(payload: AskRequest):
     user_prompt = f"CONTEXTO DEL TEMARIO:\n{result['context']}\n\nPREGUNTA DEL ALUMNO:\n{question}"
 
     try:
-        answer = call_github_models(
+        answer = call_cerebras(
             LLAMA_MODEL,
             [
                 {"role": "system", "content": system_prompt},
@@ -181,7 +187,7 @@ def ask(payload: AskRequest):
             ],
         )
     except Exception as exc:
-        logger.exception(f"Error llamando a GitHub Models (tipo: {type(exc).__name__})")
+        logger.exception(f"Error llamando a Cerebras (tipo: {type(exc).__name__})")
         raise HTTPException(status_code=502, detail=f"Error al generar la respuesta: {exc}")
 
     return AskResponse(
