@@ -9,12 +9,13 @@ memoria y sin descargar ningún modelo.
 """
 
 import os
+import re
 import glob
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-CHUNK_SIZE = 500       # caracteres por fragmento
-CHUNK_OVERLAP = 80     # solape entre fragmentos consecutivos
+CHUNK_SIZE = 350       # caracteres máximos por fragmento antes de subdividir una sección
+CHUNK_OVERLAP = 60     # solape entre sub-fragmentos consecutivos
 # Umbral de similitud coseno (0 a 1, mayor = más parecido).
 # Si el mejor resultado NO supera este valor, se considera "no encontrado".
 NOT_FOUND_THRESHOLD = 0.08
@@ -33,6 +34,8 @@ SPANISH_STOPWORDS = [
     "algo", "nosotros", "es", "son", "ser", "está", "están",
 ]
 
+SECTION_HEADER_RE = re.compile(r"^##\s+.*$", re.MULTILINE)
+
 
 def load_documents(data_dir: str) -> list[dict]:
     """Lee todos los .txt y .md de data_dir. Devuelve [{"source": ..., "text": ...}]."""
@@ -45,7 +48,7 @@ def load_documents(data_dir: str) -> list[dict]:
 
 
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
-    """Divide un texto largo en fragmentos con solape."""
+    """Divide un texto largo en fragmentos con solape (respaldo cuando una sección es muy larga)."""
     text = text.strip()
     if len(text) <= chunk_size:
         return [text] if text else []
@@ -61,6 +64,48 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     return chunks
 
 
+def split_into_sections(text: str) -> list[str]:
+    """
+    Divide el texto por encabezados de sección (##), manteniendo cada
+    encabezado junto con su contenido. Esto evita que el buscador separe,
+    por ejemplo, "## Metodología de evaluación" del párrafo que sí contiene
+    la respuesta, lo cual causaba que se recuperara la sección equivocada
+    para preguntas cuyo tema coincide con el título de otra sección.
+
+    Si una sección resulta demasiado larga, se subdivide en fragmentos más
+    pequeños, repitiendo el encabezado "## ..." en cada uno — de lo
+    contrario, un párrafo específico queda "diluido" entre otros párrafos
+    de la misma sección sin palabras clave en común con la pregunta.
+    """
+    text = text.strip()
+    matches = list(SECTION_HEADER_RE.finditer(text))
+
+    if not matches:
+        return chunk_text(text)
+
+    # Título del documento (línea(s) antes del primer "##"), si existe.
+    doc_title = text[: matches[0].start()].strip()
+
+    final_chunks = []
+    for i, match in enumerate(matches):
+        start = match.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        section = text[start:end].strip()
+        header = match.group().strip()  # p. ej. "## Metodología de evaluación"
+        body = section[len(header):].strip()
+
+        prefix = f"{doc_title}\n\n{header}" if (i == 0 and doc_title) else header
+
+        if len(section) <= CHUNK_SIZE:
+            final_chunks.append(f"{prefix}\n\n{body}" if body else prefix)
+            continue
+
+        for piece in chunk_text(body, chunk_size=max(CHUNK_SIZE - len(prefix) - 2, 100)):
+            final_chunks.append(f"{prefix}\n\n{piece}")
+
+    return final_chunks
+
+
 class RAGIndex:
     """Índice de búsqueda por palabras clave (TF-IDF) sobre los documentos del curso."""
 
@@ -73,7 +118,7 @@ class RAGIndex:
     def _build(self, data_dir: str):
         documents = load_documents(data_dir)
         for doc in documents:
-            for chunk in chunk_text(doc["text"]):
+            for chunk in split_into_sections(doc["text"]):
                 self.chunks.append({"text": chunk, "source": doc["source"]})
 
         if not self.chunks:
@@ -83,17 +128,33 @@ class RAGIndex:
             )
 
         texts = [c["text"] for c in self.chunks]
-        self.vectorizer = TfidfVectorizer(
+        # Se combinan dos vectorizadores: uno por PALABRAS (bueno para
+        # distinguir temas relevantes de irrelevantes) y uno por CARACTERES
+        # (reconoce que "evalúa", "evaluación" y "evaluar" comparten raíz,
+        # sin necesitar un lematizador de español). Se promedian ambas
+        # similitudes en la búsqueda.
+        self.word_vectorizer = TfidfVectorizer(
             stop_words=SPANISH_STOPWORDS,
             ngram_range=(1, 2),
             lowercase=True,
         )
-        self.matrix = self.vectorizer.fit_transform(texts)
+        self.char_vectorizer = TfidfVectorizer(
+            analyzer="char_wb",
+            ngram_range=(4, 6),
+            lowercase=True,
+            min_df=1,
+        )
+        self.word_matrix = self.word_vectorizer.fit_transform(texts)
+        self.char_matrix = self.char_vectorizer.fit_transform(texts)
 
     def search(self, query: str, top_k: int = 3) -> dict:
         """Busca los fragmentos más relevantes. Devuelve found=False si nada supera el umbral."""
-        query_vec = self.vectorizer.transform([query])
-        similarities = cosine_similarity(query_vec, self.matrix)[0]
+        word_sims = cosine_similarity(self.word_vectorizer.transform([query]), self.word_matrix)[0]
+        char_sims = cosine_similarity(self.char_vectorizer.transform([query]), self.char_matrix)[0]
+        # Más peso a palabras completas (mejor para distinguir tema relevante
+        # de irrelevante); los caracteres solo ayudan a "rescatar" coincidencias
+        # cuando la pregunta usa una forma distinta de la misma palabra raíz.
+        similarities = 0.65 * word_sims + 0.35 * char_sims
 
         best_idx = similarities.argmax()
         best_score = float(similarities[best_idx])
