@@ -36,15 +36,12 @@ logger = logging.getLogger("course-assistant")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
 CEREBRAS_API_KEY = os.environ.get("CEREBRAS_API_KEY")
-CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
+CEREBRAS_CHAT_URL = "https://api.cerebras.ai/v1/chat/completions"
+CEREBRAS_MODELS_URL = "https://api.cerebras.ai/v1/models"
 
-# Si el usuario fija LLAMA_MODEL explícitamente, esa variable tiene prioridad.
-# Si no, probamos esta lista de candidatos y usamos el primero que responda.
+# Si el usuario fija LLAMA_MODEL explícitamente, esa variable tiene prioridad
+# y se usa directamente sin consultar el catálogo.
 LLAMA_MODEL_OVERRIDE = os.environ.get("LLAMA_MODEL")
-LLAMA_MODEL_CANDIDATES = [
-    "llama-3.3-70b",
-    "llama3.1-8b",
-]
 
 app = FastAPI(
     title="Asistente de Curso UTZAC (Llama + RAG)",
@@ -80,7 +77,7 @@ def call_cerebras(model: str, messages: list[dict], max_tokens: int = 500, tempe
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    response = requests.post(CEREBRAS_URL, headers=headers, json=payload, timeout=60)
+    response = requests.post(CEREBRAS_CHAT_URL, headers=headers, json=payload, timeout=60)
 
     if response.status_code != 200:
         raise RuntimeError(
@@ -104,22 +101,52 @@ def call_cerebras(model: str, messages: list[dict], max_tokens: int = 500, tempe
         raise RuntimeError(f"Formato de respuesta inesperado del modelo '{model}': {data}")
 
 
-def pick_working_model() -> str:
-    """Prueba cada modelo candidato con una petición mínima y usa el primero que funcione."""
-    candidates = [LLAMA_MODEL_OVERRIDE] if LLAMA_MODEL_OVERRIDE else LLAMA_MODEL_CANDIDATES
-    last_error = None
-    for candidate in candidates:
-        try:
-            call_cerebras(candidate, [{"role": "user", "content": "hola"}], max_tokens=5)
-            logger.info(f"Modelo Llama seleccionado (Cerebras): {candidate}")
-            return candidate
-        except Exception as exc:
-            logger.warning(f"Modelo '{candidate}' no disponible: {exc}")
-            last_error = exc
-    raise RuntimeError(
-        f"Ninguno de los modelos Llama candidatos está disponible vía Cerebras "
-        f"para esta cuenta. Último error: {last_error}"
-    )
+def discover_llama_model() -> str:
+    """
+    Consulta GET /v1/models de Cerebras y elige automáticamente un modelo
+    Llama disponible en la cuenta. Esto evita tener que fijar un nombre de
+    modelo a mano y que se rompa cuando el proveedor cambia su catálogo
+    (ya pasó con Groq, GitHub Models y el propio Cerebras en este proyecto).
+    """
+    if LLAMA_MODEL_OVERRIDE:
+        logger.info(f"Usando modelo fijado manualmente: {LLAMA_MODEL_OVERRIDE}")
+        return LLAMA_MODEL_OVERRIDE
+
+    headers = {"Authorization": f"Bearer {CEREBRAS_API_KEY}"}
+    response = requests.get(CEREBRAS_MODELS_URL, headers=headers, timeout=30)
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"No se pudo consultar el catálogo de modelos de Cerebras "
+            f"(HTTP {response.status_code}): {response.text[:500]}"
+        )
+
+    try:
+        data = response.json()
+        model_ids = [m["id"] for m in data.get("data", [])]
+    except (ValueError, KeyError, TypeError) as exc:
+        raise RuntimeError(f"No se pudo interpretar el catálogo de modelos: {exc}")
+
+    if not model_ids:
+        raise RuntimeError("El catálogo de Cerebras regresó una lista de modelos vacía.")
+
+    logger.info(f"Modelos disponibles en esta cuenta de Cerebras: {model_ids}")
+
+    llama_models = [m for m in model_ids if "llama" in m.lower()]
+    if not llama_models:
+        raise RuntimeError(
+            f"Esta cuenta de Cerebras no tiene ningún modelo Llama disponible. "
+            f"Modelos que sí tiene: {model_ids}. Puedes fijar uno manualmente "
+            f"con la variable de entorno LLAMA_MODEL."
+        )
+
+    # Preferir el modelo más grande (70b) si hay varios, por mejor calidad de respuesta.
+    llama_models.sort(key=lambda m: "70b" not in m.lower())
+    chosen = llama_models[0]
+
+    # Verificación rápida de que el modelo elegido realmente responde.
+    call_cerebras(chosen, [{"role": "user", "content": "hola"}], max_tokens=5)
+    logger.info(f"Modelo Llama seleccionado (Cerebras): {chosen}")
+    return chosen
 
 
 @app.on_event("startup")
@@ -128,7 +155,7 @@ def startup():
     if not CEREBRAS_API_KEY:
         logger.warning("CEREBRAS_API_KEY no está configurada. El endpoint /ask fallará hasta configurarla.")
     else:
-        LLAMA_MODEL = pick_working_model()
+        LLAMA_MODEL = discover_llama_model()
     rag_index = RAGIndex(DATA_DIR)
     logger.info(f"RAG listo con {len(rag_index.chunks)} fragmentos de '{DATA_DIR}'.")
 
